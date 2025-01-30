@@ -3,6 +3,7 @@ pub fn build(b: *std.Build) void {
     const optimize = b.standardOptimizeOption(.{});
 
     const lebensblume_exe = add(b, target, optimize, "run", "Run shogi engine", "lebensblume", "src/main.zig");
+    _ = add(b, target, optimize, "generate-sliders", "Generate slider tables", "lb-generate-sliders", "src/generate_sliders.zig");
 
     addTests(b);
 

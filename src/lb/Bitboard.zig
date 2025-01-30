@@ -49,13 +49,20 @@ pub inline fn get(bb: Bitboard, sq: lb.Square) u1 {
     return @truncate(bb.raw >> sq);
 }
 
+pub inline fn empty(bb: Bitboard) bool {
+    return bb.raw == 0;
+}
+
+pub inline fn @"and"(a: Bitboard, b: Bitboard) Bitboard {
+    return .{ .raw = a.raw & b.raw };
+}
+
 pub inline fn @"or"(a: Bitboard, b: Bitboard) Bitboard {
     return .{ .raw = a.raw | b.raw };
 }
 
-pub inline fn or_with(bb: *Bitboard, other: Bitboard) *Bitboard {
+pub inline fn orWith(bb: *Bitboard, other: Bitboard) void {
     bb.raw |= other.raw;
-    return bb;
 }
 
 pub inline fn shift(bb: Bitboard, dir: Direction) Bitboard {
@@ -90,11 +97,35 @@ test shift {
     try std.testing.expectEqual(0x080000, base.shift(.nw).raw);
 }
 
+pub inline fn iterate(bb: Bitboard) struct {
+    bits: u81,
+    pub fn next(self: *@This()) ?Bitboard {
+        if (self.bits == 0) return null;
+        const lsb = self.bits & -%self.bits;
+        self.bits ^= lsb;
+        return Bitboard.make(lsb);
+    }
+} {
+    return .{ .bits = bb.raw };
+}
+
+pub inline fn iterateSquares(bb: Bitboard) struct {
+    bits: u81,
+    pub fn next(self: *@This()) ?lb.Square {
+        if (self.bits == 0) return null;
+        const lsb = self.bits & -%self.bits;
+        self.bits ^= lsb;
+        return @intCast(@ctz(lsb));
+    }
+} {
+    return .{ .bits = bb.raw };
+}
+
 const rank_a: u81 = rank_i << (8 * 9);
 const rank_i: u81 = 0x1FF;
 const file_1: u81 = file_9 << 8;
 const file_9: u81 = 0x001008040201008040201;
-pub const Direction = enum (u3) { n = 0, ne = 1, e = 2, se = 3, s = 4, sw = 5, w = 6, nw = 7 };
+pub const Direction = enum(u3) { n = 0, ne = 1, e = 2, se = 3, s = 4, sw = 5, w = 6, nw = 7 };
 
 const Bitboard = @This();
 const std = @import("std");
