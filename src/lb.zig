@@ -1,3 +1,4 @@
+pub const attacks = @import("lb/attacks.zig");
 pub const bit_util = @import("lb/bit_util.zig");
 pub const perft = @import("lb/perft.zig");
 pub const Bitboard = @import("lb/Bitboard.zig");

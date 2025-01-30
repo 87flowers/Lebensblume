@@ -1,6 +1,8 @@
 var g = lb.Game{};
 
 pub fn main() !void {
+    std.debug.print("{any}\n", .{lb.attacks.pawn});
+
     var gpa = std.heap.GeneralPurposeAllocator(.{}){};
     defer _ = gpa.deinit();
     const allocator = gpa.allocator();
