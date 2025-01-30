@@ -1,7 +1,7 @@
 colors: [2]Bitboard,
 pieces: [PieceType.bitboards_count]Bitboard,
 hand: [2]u7,
-board_mailbox: [81]PieceType,
+board_mailbox: [81]packed struct { color: Color, ptype: PieceType },
 hand_mailbox: [2]Hand,
 active_color: Color = .sente,
 ply: usize = 0,
@@ -11,11 +11,15 @@ pub fn emptyBoard() Board {
         .colors = @splat(.{}),
         .pieces = @splat(.{}),
         .hand = @splat(0),
-        .board_mailbox = @splat(.none),
+        .board_mailbox = @splat(.{ .color = .sente, .ptype = .none }),
         .hand_mailbox = @splat(.{}),
         .active_color = .sente,
         .ply = 0,
     };
+}
+
+pub fn defaultBoard() Board {
+    return comptime parse("lnsgkgsn1/1r5b1/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL w - 1") catch unreachable;
 }
 
 pub fn verify(board: *const Board) void {
@@ -31,7 +35,55 @@ pub fn move(board: *Board, m: Move) void {
 }
 
 pub fn format(board: *const Board, comptime _: []const u8, _: std.fmt.FormatOptions, writer: anytype) !void {
-    _ = .{ board, writer };
+    var blanks: usize = 0;
+    for (0..81) |place_index| {
+        const file = place_index % 9;
+        const sq: lb.Square = @intCast(72 - (place_index - file) + file);
+        const place = board.board_mailbox[sq];
+        if (place.ptype == .none) {
+            blanks += 1;
+        } else {
+            if (blanks != 0) {
+                try writer.print("{}", .{blanks});
+                blanks = 0;
+            }
+            try writer.print("{s}", .{PieceType.piece_strings[@intFromEnum(place.ptype)][@intFromEnum(place.color)]});
+        }
+        if (file == 8) {
+            if (blanks != 0) {
+                try writer.print("{}", .{blanks});
+                blanks = 0;
+            }
+            if (place_index != 80) try writer.print("/", .{});
+        }
+    }
+    try writer.print(" {} ", .{board.active_color});
+    if (board.hand[0] == 0 and board.hand[1] == 0) {
+        try writer.print("-", .{});
+    } else {
+        const op = struct {
+            fn op(w: anytype, count: anytype, ch: u8) !void {
+                if (count == 0) return;
+                if (count == 1) return w.print("{c}", .{ch});
+                return w.print("{}{c}", .{ count, ch });
+            }
+        }.op;
+        try op(writer, board.hand_mailbox[@intFromEnum(Color.sente)].rook, 'R');
+        try op(writer, board.hand_mailbox[@intFromEnum(Color.sente)].bishop, 'B');
+        try op(writer, board.hand_mailbox[@intFromEnum(Color.sente)].gold, 'G');
+        try op(writer, board.hand_mailbox[@intFromEnum(Color.sente)].silver, 'S');
+        try op(writer, board.hand_mailbox[@intFromEnum(Color.sente)].knight, 'N');
+        try op(writer, board.hand_mailbox[@intFromEnum(Color.sente)].lance, 'L');
+        try op(writer, board.hand_mailbox[@intFromEnum(Color.sente)].pawn, 'P');
+        try op(writer, board.hand_mailbox[@intFromEnum(Color.gote)].rook, 'r');
+        try op(writer, board.hand_mailbox[@intFromEnum(Color.gote)].bishop, 'b');
+        try op(writer, board.hand_mailbox[@intFromEnum(Color.gote)].gold, 'g');
+        try op(writer, board.hand_mailbox[@intFromEnum(Color.gote)].silver, 's');
+        try op(writer, board.hand_mailbox[@intFromEnum(Color.gote)].knight, 'n');
+        try op(writer, board.hand_mailbox[@intFromEnum(Color.gote)].lance, 'l');
+        try op(writer, board.hand_mailbox[@intFromEnum(Color.gote)].pawn, 'p');
+    }
+    try writer.print(" {}", .{(board.ply >> 1) + 1});
 }
 
 pub fn parse(str: []const u8) !Board {
@@ -42,6 +94,22 @@ pub fn parse(str: []const u8) !Board {
     const ply = it.next() orelse "1";
     if (it.next() != null) return lb.ParseError.InvalidLength;
     return Board.parseParts(board_str, color, hand, ply);
+}
+
+test "roundtrip sfen" {
+    const cases = [_][]const u8{
+        "lnsgkgsn1/1r5b1/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL w - 1",
+        "lnsgk2nl/1r4gs1/p1pppp1pp/1p4p2/7P1/2P6/PP1PPPP1P/1SG4R1/LN2KGSNL b Bb 1",
+        "ln1g5/1r2S1k2/p2pppn2/2ps2p2/1p7/2P6/PPSPPPPLP/2G2K1pr/LN4G1b w BGSLPnp 62",
+        "8l/1l+R2P3/p2pBG1pp/kps1p4/Nn1P2G2/P1P1P2PP/1PS6/1KSG3+r1/LN2+p3L w Sbgn3p 124",
+        "ln1g3nl/2s2k1+P1/p3pg3/1np2p2p/3p5/1SP3P1P/P1KPPSp2/2G6/L2b1G2L w RBSN2Pr2p 66",
+    };
+    for (cases) |case| {
+        const board = try Board.parse(case);
+        var tmp: [128]u8 = undefined;
+        const sfen = try std.fmt.bufPrint(&tmp, "{}", .{board});
+        try std.testing.expectEqualStrings(case, sfen);
+    }
 }
 
 pub fn parseParts(board_str: []const u8, color_str: []const u8, hand_str: []const u8, ply_str: []const u8) !Board {
@@ -165,7 +233,7 @@ pub fn parseParts(board_str: []const u8, color_str: []const u8, hand_str: []cons
 fn placeBoard(self: *Board, color: Color, ptype: PieceType, sq: Square) void {
     self.colors[@intFromEnum(color)].orWith(Bitboard.fromSq(sq));
     self.pieces[ptype.toBitboardIndex()].orWith(Bitboard.fromSq(sq));
-    self.board_mailbox[sq] = ptype;
+    self.board_mailbox[sq] = .{ .color = color, .ptype = ptype };
 }
 
 fn placeHandFromParse(self: *Board, color: Color, ptype: PieceType, count: usize) !void {

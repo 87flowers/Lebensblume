@@ -1,7 +1,7 @@
-board: lb.Board = lb.Board.emptyBoard(),
+board: lb.Board = lb.Board.defaultBoard(),
 
 pub fn setPositionDefault(self: *Game) void {
-    self.board = lb.Board.emptyBoard();
+    self.board = lb.Board.defaultBoard();
 }
 
 pub fn setPosition(self: *Game, board: lb.Board) void {
