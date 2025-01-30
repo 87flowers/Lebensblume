@@ -58,8 +58,9 @@ const Usi = struct {
         } else if (std.mem.eql(u8, pos_type, "fen")) {
             const board_str = it.next() orelse "";
             const color = it.next() orelse "";
+            const hand = it.next() orelse "";
             const ply = it.next() orelse "";
-            g.setPosition(lb.Board.parseParts(board_str, color, ply) catch
+            g.setPosition(lb.Board.parseParts(board_str, color, hand, ply) catch
                 return self.out.protocolError("position", "invalid fen provided", .{}));
         } else {
             try self.out.unrecognisedToken("position", pos_type);

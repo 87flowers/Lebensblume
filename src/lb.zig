@@ -7,7 +7,7 @@ pub const Game = @import("lb/Game.zig");
 pub const MoveList = @import("lb/MoveList.zig");
 
 pub const max_game_ply = 1024;
-pub const max_legal_moves = 4572;
+pub const max_legal_moves = 600;
 pub const max_search_ply = 64;
 
 pub const Score = i32;
@@ -18,7 +18,8 @@ pub const ParseError = error{
     InvalidChar,
     InvalidLength,
     OutOfRange,
-    RanOutOfPieces,
+    InvalidHand,
+    InvalidBoard,
 };
 
 pub const PieceType = enum(u4) {
@@ -38,6 +39,9 @@ pub const PieceType = enum(u4) {
     nari_knight = 0o15,
     nari_silver = 0o16,
 
+    // Promoted lance/knight/silver share a bitboard
+    pub const bitboards_count = 0o14;
+
     pub fn promotable(ptype: PieceType) bool {
         const pt = @intFromEnum(ptype);
         return pt >= @intFromEnum(PieceType.pawn) or pt <= @intFromEnum(PieceType.silver);
@@ -50,11 +54,11 @@ pub const PieceType = enum(u4) {
 
     pub fn toBitboardIndex(ptype: PieceType) usize {
         assert(ptype != .none);
-        return @min(14, @intFromEnum(ptype)) - 1;
+        return @min(bitboards_count, @intFromEnum(ptype)) - 1;
     }
 
     pub const piece_strings = [15][2][]const u8{
-        .{ "", "" },
+        .{ ".", "." },
         .{ "P", "p" },
         .{ "B", "b" },
         .{ "R", "r" },
@@ -71,8 +75,8 @@ pub const PieceType = enum(u4) {
         .{ "+S", "+s" },
     };
 
-    pub fn format(self: Color, comptime _: []const u8, _: std.fmt.FormatOptions, writer: anytype) !void {
-        try writer.print("{c}", .{self.toChar()});
+    pub fn format(self: PieceType, comptime _: []const u8, _: std.fmt.FormatOptions, writer: anytype) !void {
+        try writer.print("{s}", .{piece_strings[@intFromEnum(self)][0]});
     }
 };
 
@@ -96,7 +100,42 @@ pub const Color = enum(u1) {
     }
 };
 
-pub const Move = struct {};
+pub const Move = packed struct(u16) {
+    src: u7,
+    drop: bool,
+    to: Square,
+    promo: bool,
+
+    pub const none: Move = @bitCast(@as(u16, 0));
+
+    pub fn makeMove(f: Square, to: Square, promo: bool) Move {
+        return .{
+            .src = f,
+            .drop = false,
+            .to = to,
+            .promo = promo,
+        };
+    }
+
+    pub fn makeDrop(pt: PieceType, to: Square) Move {
+        return .{
+            .src = @intFromEnum(pt),
+            .drop = true,
+            .to = to,
+            .promo = false,
+        };
+    }
+
+    pub fn from(m: Move) Square {
+        assert(!m.drop);
+        return m.src;
+    }
+
+    pub fn ptype(m: Move) PieceType {
+        assert(m.drop);
+        return @enumFromInt(m.src);
+    }
+};
 
 const std = @import("std");
 const assert = std.debug.assert;
