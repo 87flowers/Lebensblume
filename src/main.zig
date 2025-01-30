@@ -52,16 +52,18 @@ const Usi = struct {
     }
 
     fn usiParsePosition(self: *Usi, it: *Iterator) !void {
-        const pos_type = it.next() orelse "startpos";
+        const pos_type = it.next() orelse
+            return self.out.protocolError("position", "no position provided", .{});
+
         if (std.mem.eql(u8, pos_type, "startpos")) {
             g.setPositionDefault();
-        } else if (std.mem.eql(u8, pos_type, "fen")) {
+        } else if (std.mem.eql(u8, pos_type, "sfen")) {
             const board_str = it.next() orelse "";
             const color = it.next() orelse "";
             const hand = it.next() orelse "";
             const ply = it.next() orelse "";
             g.setPosition(lb.Board.parseParts(board_str, color, hand, ply) catch
-                return self.out.protocolError("position", "invalid fen provided", .{}));
+                return self.out.protocolError("position", "invalid sfen provided", .{}));
         } else {
             try self.out.unrecognisedToken("position", pos_type);
             return;
