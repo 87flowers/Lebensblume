@@ -17,7 +17,7 @@ pub fn main() !void {
     try output.print("}};\n", .{});
     try output.print("\n", .{});
     try output.print("pub const lance: [81]SliderTable = .{{\n", .{});
-    try gen(output, &.{ .n });
+    try gen(output, &.{.n});
     try output.print("}};\n", .{});
     try bufw.flush();
 }
@@ -40,7 +40,6 @@ fn gen(output: anytype, directions: []const Direction) !void {
         try output.print("    }},\n", .{});
     }
 }
-
 
 pub inline fn subsets(x: u64) struct {
     set: u64,
