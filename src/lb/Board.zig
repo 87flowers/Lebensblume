@@ -26,10 +26,6 @@ pub fn verify(board: *const Board) void {
     _ = board;
 }
 
-fn ones(count: usize) u64 {
-    return (@as(u64, 1) << @intCast(count)) -% 1;
-}
-
 pub fn move(board: *Board, m: Move) void {
     _ = .{ board, m };
 }
