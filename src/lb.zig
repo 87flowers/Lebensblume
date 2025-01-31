@@ -71,8 +71,26 @@ pub const PieceType = enum(u4) {
         .{ "+B", "+b" },
         .{ "+R", "+r" },
         .{ "+L", "+l" },
-        .{ "+K", "+k" },
+        .{ "+N", "+n" },
         .{ "+S", "+s" },
+    };
+
+    pub const ja_piece_strings = [15][2][]const u8{
+        .{ "　", "　" },
+        .{ "歩", "歩" },
+        .{ "角", "角" },
+        .{ "飛", "飛" },
+        .{ "香", "香" },
+        .{ "桂", "桂" },
+        .{ "銀", "銀" },
+        .{ "金", "金" },
+        .{ "玉", "王" },
+        .{ "と", "と" },
+        .{ "馬", "馬" },
+        .{ "龍", "龍" },
+        .{ "杏", "杏" },
+        .{ "圭", "圭" },
+        .{ "全", "全" },
     };
 
     pub fn format(self: PieceType, comptime _: []const u8, _: std.fmt.FormatOptions, writer: anytype) !void {

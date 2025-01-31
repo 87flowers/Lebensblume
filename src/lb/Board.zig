@@ -19,7 +19,7 @@ pub fn emptyBoard() Board {
 }
 
 pub fn defaultBoard() Board {
-    return comptime parse("lnsgkgsn1/1r5b1/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL w - 1") catch unreachable;
+    return comptime parse("lnsgkgsnl/1r5b1/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL w - 1") catch unreachable;
 }
 
 pub fn verify(board: *const Board) void {
@@ -30,11 +30,32 @@ pub fn move(board: *Board, m: Move) void {
     _ = .{ board, m };
 }
 
+pub fn prettyPrint(board: *const Board, writer: anytype) !void {
+    try writer.raw(" ９ ８ ７ ６ ５ ４ ３ ２ １ \n", .{});
+    try writer.raw("┏━━┯━━┯━━┯━━┯━━┯━━┯━━┯━━┯━━┓\n", .{});
+    for (0..81) |place_index| {
+        const file, const sq = displayIndexToSquare(place_index);
+        try writer.raw("{s}", .{if (file == 0) "┃" else "│"});
+        const place = board.board_mailbox[sq];
+        if (place.ptype != .none) try writer.raw("{s}", .{switch (place.color) {
+            .sente => "\x1b[38;2;200;200;200;48;2;0;0;0m",
+            .gote => "\x1b[38;2;80;80;80;48;2;255;255;255m",
+        }});
+        try writer.raw("{s}", .{PieceType.ja_piece_strings[@intFromEnum(place.ptype)][@intFromEnum(place.color)]});
+        try writer.raw("\x1b[39m\x1b[49m", .{});
+        if (file == 8) {
+            try writer.raw("┃ {c}\n", .{@as(u8, @intCast('a' + place_index / 9))});
+            if (place_index != 80) try writer.raw("┠──┼──┼──┼──┼──┼──┼──┼──┼──┨\n", .{});
+        }
+    }
+    try writer.raw("┗━━┷━━┷━━┷━━┷━━┷━━┷━━┷━━┷━━┛\n", .{});
+    try writer.flush();
+}
+
 pub fn format(board: *const Board, comptime _: []const u8, _: std.fmt.FormatOptions, writer: anytype) !void {
     var blanks: usize = 0;
     for (0..81) |place_index| {
-        const file = place_index % 9;
-        const sq: lb.Square = @intCast(72 - (place_index - file) + file);
+        const file, const sq = displayIndexToSquare(place_index);
         const place = board.board_mailbox[sq];
         if (place.ptype == .none) {
             blanks += 1;
@@ -116,8 +137,7 @@ pub fn parseParts(board_str: []const u8, color_str: []const u8, hand_str: []cons
         var place_index: usize = 0;
         var i: usize = 0;
         board_loop: while (place_index < 81 and i < board_str.len) : (i += 1) {
-            const file = place_index % 9;
-            const sq: lb.Square = @intCast(72 - (place_index - file) + file);
+            const file, const sq = displayIndexToSquare(place_index);
             const ch = board_str[i];
             switch (ch) {
                 '/' => {
@@ -224,6 +244,12 @@ pub fn parseParts(board_str: []const u8, color_str: []const u8, hand_str: []cons
     if (@popCount(Bitboard.@"and"(result.pieces[PieceType.king.toBitboardIndex()], result.colors[1]).raw) != 1) return lb.ParseError.InvalidBoard;
 
     return result;
+}
+
+fn displayIndexToSquare(index: usize) struct { usize, Square } {
+    const file = index % 9;
+    const sq: Square = @intCast(72 - (index - file) + file);
+    return .{ file, sq };
 }
 
 fn placeBoard(self: *Board, color: Color, ptype: PieceType, sq: Square) void {
