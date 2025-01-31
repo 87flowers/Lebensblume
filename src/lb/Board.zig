@@ -42,7 +42,7 @@ fn generateCheckers(board: *Board) void {
             .bishop => if (!diagonal_potential_checkers.@"and"(potential_checker).empty()) board.checkers.orWith(potential_checker),
             .rook => if (!orthogonal_potential_checkers.@"and"(potential_checker).empty()) board.checkers.orWith(potential_checker),
             .lance => if (!lb.attacks.lance(potential_checker_sq, enemy_color, .{}).@"and"(friendly_king).empty()) board.checkers.orWith(potential_checker),
-            .knight => if (!lb.attacks.knight[@intFromEnum(enemy_color)][potential_checker_sq].@"and"(friendly_king).empty()) board.checkers.orWith(potential_checker),
+            .knight => {},
             .silver => if (!lb.attacks.silver[@intFromEnum(enemy_color)][potential_checker_sq].@"and"(friendly_king).empty()) board.checkers.orWith(potential_checker),
             .gold, .tokin, .nari_lance, .nari_knight, .nari_silver => if (!lb.attacks.gold[@intFromEnum(enemy_color)][potential_checker_sq].@"and"(friendly_king).empty()) board.checkers.orWith(potential_checker),
             .king => {},
@@ -55,6 +55,12 @@ fn generateCheckers(board: *Board) void {
                 if (!lb.attacks.king[potential_checker_sq].@"and"(friendly_king).empty()) board.checkers.orWith(potential_checker);
             },
         }
+    }
+
+    var knight_potential_checkers_iterator = lb.attacks.knight[@intFromEnum(board.active_color)][friendly_king_sq].@"and"(enemy).iterate();
+    while (knight_potential_checkers_iterator.next()) |potential_checker| {
+        const potential_checker_sq = @ctz(potential_checker.raw);
+        if (board.board_mailbox[potential_checker_sq].ptype == .knight) board.checkers.orWith(potential_checker);
     }
 }
 
