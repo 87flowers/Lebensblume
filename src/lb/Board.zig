@@ -6,17 +6,7 @@ hand_mailbox: [2]Hand,
 active_color: Color = .sente,
 ply: usize = 0,
 
-pub fn emptyBoard() Board {
-    return .{
-        .colors = @splat(.{}),
-        .pieces = @splat(.{}),
-        .hand = @splat(0),
-        .board_mailbox = @splat(.{ .color = .sente, .ptype = .none }),
-        .hand_mailbox = @splat(.{}),
-        .active_color = .sente,
-        .ply = 0,
-    };
-}
+checkers: Bitboard,
 
 pub fn defaultBoard() Board {
     return comptime parse("lnsgkgsnl/1r5b1/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL w - 1") catch unreachable;
@@ -30,25 +20,81 @@ pub fn move(board: *Board, m: Move) void {
     _ = .{ board, m };
 }
 
-pub fn prettyPrint(board: *const Board, writer: anytype) !void {
-    try writer.raw(" ９ ８ ７ ６ ５ ４ ３ ２ １ \n", .{});
-    try writer.raw("┏━━┯━━┯━━┯━━┯━━┯━━┯━━┯━━┯━━┓\n", .{});
-    for (0..81) |place_index| {
-        const file, const sq = displayIndexToSquare(place_index);
-        try writer.raw("{s}", .{if (file == 0) "┃" else "│"});
-        const place = board.board_mailbox[sq];
-        if (place.ptype != .none) try writer.raw("{s}", .{switch (place.color) {
-            .sente => "\x1b[38;2;200;200;200;48;2;0;0;0m",
-            .gote => "\x1b[38;2;80;80;80;48;2;255;255;255m",
-        }});
-        try writer.raw("{s}", .{PieceType.ja_piece_strings[@intFromEnum(place.ptype)][@intFromEnum(place.color)]});
-        try writer.raw("\x1b[39m\x1b[49m", .{});
-        if (file == 8) {
-            try writer.raw("┃ {c}\n", .{@as(u8, @intCast('a' + place_index / 9))});
-            if (place_index != 80) try writer.raw("┠──┼──┼──┼──┼──┼──┼──┼──┼──┨\n", .{});
+fn generateCheckers(board: *Board) void {
+    board.checkers = .{};
+
+    const enemy_color = board.active_color.invert();
+    const friendly = board.colors[@intFromEnum(board.active_color)];
+    const enemy = board.colors[@intFromEnum(enemy_color)];
+
+    const friendly_king = Bitboard.@"and"(friendly, board.pieces[PieceType.king.toBitboardIndex()]);
+    const friendly_king_sq = @ctz(friendly_king.raw);
+
+    const orthogonal_potential_checkers = lb.attacks.rook(friendly_king_sq, enemy).@"and"(enemy);
+    const diagonal_potential_checkers = lb.attacks.bishop(friendly_king_sq, enemy).@"and"(enemy);
+
+    var potential_checkers_iterator = Bitboard.@"or"(orthogonal_potential_checkers, diagonal_potential_checkers).iterate();
+    while (potential_checkers_iterator.next()) |potential_checker| {
+        const potential_checker_sq = @ctz(potential_checker.raw);
+        switch (board.board_mailbox[potential_checker_sq].ptype) {
+            .none => unreachable,
+            .pawn => if (!lb.attacks.pawn[@intFromEnum(enemy_color)][potential_checker_sq].@"and"(friendly_king).empty()) board.checkers.orWith(potential_checker),
+            .bishop => if (!diagonal_potential_checkers.@"and"(potential_checker).empty()) board.checkers.orWith(potential_checker),
+            .rook => if (!orthogonal_potential_checkers.@"and"(potential_checker).empty()) board.checkers.orWith(potential_checker),
+            .lance => if (!lb.attacks.lance(potential_checker_sq, enemy_color, .{}).@"and"(friendly_king).empty()) board.checkers.orWith(potential_checker),
+            .knight => if (!lb.attacks.knight[@intFromEnum(enemy_color)][potential_checker_sq].@"and"(friendly_king).empty()) board.checkers.orWith(potential_checker),
+            .silver => if (!lb.attacks.silver[@intFromEnum(enemy_color)][potential_checker_sq].@"and"(friendly_king).empty()) board.checkers.orWith(potential_checker),
+            .gold, .tokin, .nari_lance, .nari_knight, .nari_silver => if (!lb.attacks.gold[@intFromEnum(enemy_color)][potential_checker_sq].@"and"(friendly_king).empty()) board.checkers.orWith(potential_checker),
+            .king => {},
+            .horse => {
+                if (!diagonal_potential_checkers.@"and"(potential_checker).empty()) board.checkers.orWith(potential_checker);
+                if (!lb.attacks.king[potential_checker_sq].@"and"(friendly_king).empty()) board.checkers.orWith(potential_checker);
+            },
+            .dragon => {
+                if (!orthogonal_potential_checkers.@"and"(potential_checker).empty()) board.checkers.orWith(potential_checker);
+                if (!lb.attacks.king[potential_checker_sq].@"and"(friendly_king).empty()) board.checkers.orWith(potential_checker);
+            },
         }
     }
-    try writer.raw("┗━━┷━━┷━━┷━━┷━━┷━━┷━━┷━━┷━━┛\n", .{});
+}
+
+pub fn prettyPrint(board: *const Board, writer: anytype, language: PrintLanguage) !void {
+    const indent = "    ";
+    try writer.raw(indent ++ " ９ ８ ７ ６ ５ ４ ３ ２ １ \n", .{});
+    try writer.raw(indent ++ "┏━━┯━━┯━━┯━━┯━━┯━━┯━━┯━━┯━━┓\n", .{});
+    for (0..81) |place_index| {
+        const file, const sq = displayIndexToSquare(place_index);
+        try writer.raw("{s}", .{if (file == 0) indent ++ "┃" else "│"});
+        const place = board.board_mailbox[sq];
+        const is_red = place.ptype.promoted() and language == .ja;
+        if (place.ptype != .none) try writer.raw("{s}", .{switch (place.color) {
+            .sente => if (is_red) "\x1b[38;2;255;100;100;48;2;10;10;10m" else "\x1b[38;2;220;220;220;48;2;10;10;10m",
+            .gote => if (is_red) "\x1b[38;2;220;0;0;48;2;255;255;255m" else "\x1b[38;2;80;80;80;48;2;255;255;255m",
+        }});
+        switch (language) {
+            .ja => try writer.raw("{s}", .{PieceType.ja_piece_strings[@intFromEnum(place.ptype)][@intFromEnum(place.color)]}),
+            .en => try writer.raw("{s:2}", .{PieceType.piece_strings[@intFromEnum(place.ptype)][@intFromEnum(place.color)]}),
+        }
+        try writer.raw("\x1b[39m\x1b[49m", .{});
+        if (file == 8) {
+            const rank_ch = @as(u8, @intCast('a' + place_index / 9));
+            try writer.raw("┃ {c}\n", .{rank_ch});
+            if (place_index != 80) {
+                try writer.raw(indent ++ "┠──┼──┼──┼──┼──┼──┼──┼──┼──┨", .{});
+                if (rank_ch == 'c') {
+                    try writer.raw("      ☖ 持駒: ", .{});
+                    try board.hand_mailbox[1].prettyPrint(writer, .gote, language);
+                }
+                if (rank_ch == 'f') {
+                    try writer.raw("      ☗ 持駒: ", .{});
+                    try board.hand_mailbox[0].prettyPrint(writer, .sente, language);
+                }
+                try writer.raw("\n", .{});
+            }
+        }
+    }
+    try writer.raw(indent ++ "┗━━┷━━┷━━┷━━┷━━┷━━┷━━┷━━┷━━┛\n", .{});
+    try writer.raw("sfen: {}\n", .{board});
     try writer.flush();
 }
 
@@ -130,7 +176,16 @@ test "roundtrip sfen" {
 }
 
 pub fn parseParts(board_str: []const u8, color_str: []const u8, hand_str: []const u8, ply_str: []const u8) !Board {
-    var result = emptyBoard();
+    var result = Board{
+        .colors = @splat(.{}),
+        .pieces = @splat(.{}),
+        .hand = @splat(0),
+        .board_mailbox = @splat(.{ .color = .sente, .ptype = .none }),
+        .hand_mailbox = @splat(.{}),
+        .active_color = .sente,
+        .ply = 0,
+        .checkers = .{},
+    };
 
     // Parse Pieces
     {
@@ -243,6 +298,9 @@ pub fn parseParts(board_str: []const u8, color_str: []const u8, hand_str: []cons
     if (@popCount(Bitboard.@"and"(result.pieces[PieceType.king.toBitboardIndex()], result.colors[0]).raw) != 1) return lb.ParseError.InvalidBoard;
     if (@popCount(Bitboard.@"and"(result.pieces[PieceType.king.toBitboardIndex()], result.colors[1]).raw) != 1) return lb.ParseError.InvalidBoard;
 
+    // Precompute
+    result.generateCheckers();
+
     return result;
 }
 
@@ -313,7 +371,35 @@ pub const Hand = packed struct(u32) {
     knight: u4 = 0,
     silver: u4 = 0,
     gold: u4 = 0,
+
+    pub fn prettyPrint(hand: *const Hand, writer: anytype, color: Color, language: PrintLanguage) !void {
+        const table = switch (language) {
+            .ja => PieceType.ja_piece_strings,
+            .en => PieceType.piece_strings,
+        };
+        if (hand.pawn == 0 and hand.bishop == 0 and hand.rook == 0 and hand.lance == 0 and hand.knight == 0 and hand.silver == 0 and hand.gold == 0) {
+            try writer.raw("-", .{});
+            return;
+        }
+        const op = struct {
+            fn op(w: anytype, count: anytype, t: anytype, c: Color, ptype: PieceType) !void {
+                const s = t[@intFromEnum(ptype)][@intFromEnum(c)];
+                if (count == 0) return;
+                if (count == 1) return w.raw("{s} ", .{s});
+                return w.raw("{s}{} ", .{ s, count });
+            }
+        }.op;
+        try op(writer, hand.rook, table, color, .rook);
+        try op(writer, hand.bishop, table, color, .bishop);
+        try op(writer, hand.gold, table, color, .gold);
+        try op(writer, hand.silver, table, color, .silver);
+        try op(writer, hand.knight, table, color, .knight);
+        try op(writer, hand.lance, table, color, .lance);
+        try op(writer, hand.pawn, table, color, .pawn);
+    }
 };
+
+pub const PrintLanguage = enum { ja, en };
 
 const Board = @This();
 const std = @import("std");

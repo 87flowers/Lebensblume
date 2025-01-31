@@ -52,13 +52,17 @@ pub const PieceType = enum(u4) {
         return @enumFromInt(@intFromEnum(ptype) | 0o10);
     }
 
+    pub fn promoted(ptype: PieceType) bool {
+        return @intFromEnum(ptype) > 0o10;
+    }
+
     pub fn toBitboardIndex(ptype: PieceType) usize {
         assert(ptype != .none);
         return @min(bitboards_count, @intFromEnum(ptype)) - 1;
     }
 
     pub const piece_strings = [15][2][]const u8{
-        .{ ".", "." },
+        .{ " ", " " },
         .{ "P", "p" },
         .{ "B", "b" },
         .{ "R", "r" },

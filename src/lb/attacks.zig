@@ -71,20 +71,32 @@ pub fn bishop(sq: lb.Square, blockers: Bitboard) Bitboard {
     return Bitboard.make(sliders.bishop[sq].dest_table[index]);
 }
 
-pub fn lance(sq: lb.Square, blockers: Bitboard) Bitboard {
-    const mask = sliders.lance[sq].blocker_mask;
+pub fn lance(sq: lb.Square, lance_color: Color, blockers: Bitboard) Bitboard {
+    const mask = sliders.lance[@intFromEnum(lance_color)][sq].blocker_mask;
     const x = compressBlockers(blockers.raw & mask);
     const m = compressBlockers(mask);
     const index = pext(x, m);
-    return Bitboard.make(sliders.lance[sq].dest_table[index]);
+    return Bitboard.make(sliders.lance[@intFromEnum(lance_color)][sq].dest_table[index]);
 }
 
 inline fn pext(x: u64, m: u64) usize {
+    if (@inComptime()) return pextComptime(x, m);
     return asm ("pext %[m], %[x], %[result]"
         : [result] "=r" (-> u64),
         : [x] "r" (x),
           [m] "r" (m),
     );
+}
+
+fn pextComptime(x: u64, m: u64) usize {
+    var result: usize = 0;
+    var bb: u64 = 1;
+    var mask = m;
+    while (mask != 0) : (bb += bb) {
+        if (x & mask & -%mask != 0) result |= bb;
+        mask &= mask - 1;
+    }
+    return result;
 }
 
 fn compressBlockers(bb: u81) u64 {

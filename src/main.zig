@@ -47,7 +47,9 @@ const Usi = struct {
         } else if (std.mem.eql(u8, command, "quit")) {
             std.process.exit(0);
         } else if (std.mem.eql(u8, command, "d")) {
-            try g.board.prettyPrint(&self.out);
+            try g.board.prettyPrint(&self.out, .ja);
+        } else if (std.mem.eql(u8, command, "de")) {
+            try g.board.prettyPrint(&self.out, .en);
         } else {
             try self.out.protocolError(command, "unknown command", .{});
         }

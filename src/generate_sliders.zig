@@ -9,35 +9,40 @@ pub fn main() !void {
     });
     try output.print("\n", .{});
     try output.print("pub const rook: [81]SliderTable = .{{\n", .{});
-    try gen(output, &.{ .n, .e, .s, .w });
+    try gen(output, "    ", &.{ .n, .e, .s, .w });
     try output.print("}};\n", .{});
     try output.print("\n", .{});
     try output.print("pub const bishop: [81]SliderTable = .{{\n", .{});
-    try gen(output, &.{ .ne, .se, .sw, .nw });
+    try gen(output, "    ", &.{ .ne, .se, .sw, .nw });
     try output.print("}};\n", .{});
     try output.print("\n", .{});
-    try output.print("pub const lance: [81]SliderTable = .{{\n", .{});
-    try gen(output, &.{.n});
+    try output.print("pub const lance: [2][81]SliderTable = .{{\n", .{});
+    try output.print("    .{{\n", .{});
+    try gen(output, "        ", &.{.n});
+    try output.print("    }},\n", .{});
+    try output.print("    .{{\n", .{});
+    try gen(output, "        ", &.{.s});
+    try output.print("    }},\n", .{});
     try output.print("}};\n", .{});
     try bufw.flush();
 }
 
-fn gen(output: anytype, directions: []const Direction) !void {
+fn gen(output: anytype, indent: []const u8, directions: []const Direction) !void {
     for (0..81) |sq| {
         const piece = Bitboard.fromSq(@intCast(sq));
         const blockers = genPotentialBlockers(piece, directions);
         // const moves_no_blockers = genMoves(piece, directions, Bitboard{});
-        try output.print("    .{{\n", .{});
-        try output.print("        .blocker_mask = 0x{x},\n", .{blockers.raw});
-        try output.print("        .dest_table = &[_]u81{{\n", .{});
+        try output.print("{s}.{{\n", .{indent});
+        try output.print("{s}    .blocker_mask = 0x{x},\n", .{ indent, blockers.raw });
+        try output.print("{s}    .dest_table = &[_]u81{{\n", .{indent});
         var subs = subsets(compress(blockers.raw, blockers.raw));
         while (subs.next()) |sub| {
             const current = Bitboard.make(decompress(sub, blockers.raw));
             const moves = genMoves(piece, directions, current);
-            try output.print("            0x{x},\n", .{moves.raw});
+            try output.print("{s}        0x{x},\n", .{ indent, moves.raw });
         }
-        try output.print("        }},\n", .{});
-        try output.print("    }},\n", .{});
+        try output.print("{s}    }},\n", .{indent});
+        try output.print("{s}}},\n", .{indent});
     }
 }
 
