@@ -9,7 +9,7 @@ ply: usize = 0,
 checkers: Bitboard,
 
 pub fn defaultBoard() Board {
-    return comptime parse("lnsgkgsnl/1r5b1/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL w - 1") catch unreachable;
+    return comptime parse("lnsgkgsnl/1r5b1/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL b - 1") catch unreachable;
 }
 
 pub fn verify(board: *const Board) void {
@@ -23,41 +23,42 @@ pub fn move(board: *Board, m: Move) void {
 fn generateCheckers(board: *Board) void {
     board.checkers = .{};
 
+    const friendly_color = board.active_color;
     const enemy_color = board.active_color.invert();
-    const friendly = board.colors[@intFromEnum(board.active_color)];
+    const friendly = board.colors[@intFromEnum(friendly_color)];
     const enemy = board.colors[@intFromEnum(enemy_color)];
 
     const friendly_king = Bitboard.@"and"(friendly, board.pieces[PieceType.king.toBitboardIndex()]);
-    const friendly_king_sq = @ctz(friendly_king.raw);
+    const friendly_king_sq = friendly_king.toSq();
 
-    const orthogonal_potential_checkers = lb.attacks.rook(friendly_king_sq, enemy).@"and"(enemy);
-    const diagonal_potential_checkers = lb.attacks.bishop(friendly_king_sq, enemy).@"and"(enemy);
+    const orthogonal_potential_checkers = lb.attacks.rook(friendly_king_sq, Bitboard.@"or"(enemy, friendly)).@"and"(enemy);
+    const diagonal_potential_checkers = lb.attacks.bishop(friendly_king_sq, Bitboard.@"or"(enemy, friendly)).@"and"(enemy);
 
     var potential_checkers_iterator = Bitboard.@"or"(orthogonal_potential_checkers, diagonal_potential_checkers).iterate();
     while (potential_checkers_iterator.next()) |potential_checker| {
-        const potential_checker_sq = @ctz(potential_checker.raw);
-        switch (board.board_mailbox[potential_checker_sq].ptype) {
+        const potential_checker_sq = potential_checker.toSq();
+        switch (board.board_mailbox[potential_checker_sq.raw].ptype) {
             .none => unreachable,
-            .pawn => if (!lb.attacks.pawn[@intFromEnum(enemy_color)][potential_checker_sq].@"and"(friendly_king).empty()) board.checkers.orWith(potential_checker),
+            .pawn => if (!lb.attacks.pawn(potential_checker_sq, enemy_color).@"and"(friendly_king).empty()) board.checkers.orWith(potential_checker),
             .bishop => if (!diagonal_potential_checkers.@"and"(potential_checker).empty()) board.checkers.orWith(potential_checker),
             .rook => if (!orthogonal_potential_checkers.@"and"(potential_checker).empty()) board.checkers.orWith(potential_checker),
             .lance => if (!lb.attacks.lance(potential_checker_sq, enemy_color, .{}).@"and"(friendly_king).empty()) board.checkers.orWith(potential_checker),
             .knight => {},
-            .silver => if (!lb.attacks.silver[@intFromEnum(enemy_color)][potential_checker_sq].@"and"(friendly_king).empty()) board.checkers.orWith(potential_checker),
-            .gold, .tokin, .nari_lance, .nari_knight, .nari_silver => if (!lb.attacks.gold[@intFromEnum(enemy_color)][potential_checker_sq].@"and"(friendly_king).empty()) board.checkers.orWith(potential_checker),
+            .silver => if (!lb.attacks.silver(potential_checker_sq, enemy_color).@"and"(friendly_king).empty()) board.checkers.orWith(potential_checker),
+            .gold, .tokin, .nari_lance, .nari_knight, .nari_silver => if (!lb.attacks.gold(potential_checker_sq, enemy_color).@"and"(friendly_king).empty()) board.checkers.orWith(potential_checker),
             .king => {},
             .horse => {
                 if (!diagonal_potential_checkers.@"and"(potential_checker).empty()) board.checkers.orWith(potential_checker);
-                if (!lb.attacks.king[potential_checker_sq].@"and"(friendly_king).empty()) board.checkers.orWith(potential_checker);
+                if (!lb.attacks.king(potential_checker_sq).@"and"(friendly_king).empty()) board.checkers.orWith(potential_checker);
             },
             .dragon => {
                 if (!orthogonal_potential_checkers.@"and"(potential_checker).empty()) board.checkers.orWith(potential_checker);
-                if (!lb.attacks.king[potential_checker_sq].@"and"(friendly_king).empty()) board.checkers.orWith(potential_checker);
+                if (!lb.attacks.king(potential_checker_sq).@"and"(friendly_king).empty()) board.checkers.orWith(potential_checker);
             },
         }
     }
 
-    var knight_potential_checkers_iterator = lb.attacks.knight[@intFromEnum(board.active_color)][friendly_king_sq].@"and"(enemy).iterate();
+    var knight_potential_checkers_iterator = lb.attacks.knight(friendly_king_sq, friendly_color).@"and"(enemy).iterate();
     while (knight_potential_checkers_iterator.next()) |potential_checker| {
         const potential_checker_sq = @ctz(potential_checker.raw);
         if (board.board_mailbox[potential_checker_sq].ptype == .knight) board.checkers.orWith(potential_checker);
@@ -66,12 +67,13 @@ fn generateCheckers(board: *Board) void {
 
 pub fn prettyPrint(board: *const Board, writer: anytype, language: PrintLanguage) !void {
     const indent = "    ";
+    try writer.raw("\n", .{});
     try writer.raw(indent ++ " ９ ８ ７ ６ ５ ４ ３ ２ １ \n", .{});
     try writer.raw(indent ++ "┏━━┯━━┯━━┯━━┯━━┯━━┯━━┯━━┯━━┓\n", .{});
     for (0..81) |place_index| {
         const file, const sq = displayIndexToSquare(place_index);
         try writer.raw("{s}", .{if (file == 0) indent ++ "┃" else "│"});
-        const place = board.board_mailbox[sq];
+        const place = board.board_mailbox[sq.raw];
         const is_red = place.ptype.promoted() and language == .ja;
         if (place.ptype != .none) try writer.raw("{s}", .{switch (place.color) {
             .sente => if (is_red) "\x1b[38;2;255;100;100;48;2;10;10;10m" else "\x1b[38;2;220;220;220;48;2;10;10;10m",
@@ -100,7 +102,15 @@ pub fn prettyPrint(board: *const Board, writer: anytype, language: PrintLanguage
         }
     }
     try writer.raw(indent ++ "┗━━┷━━┷━━┷━━┷━━┷━━┷━━┷━━┷━━┛\n", .{});
+    try writer.raw("\n", .{});
     try writer.raw("sfen: {}\n", .{board});
+    try writer.raw("checkers:", .{});
+    {
+        if (board.checkers.empty()) try writer.raw(" -", .{});
+        var checkers_iterator = board.checkers.iterateSquares();
+        while (checkers_iterator.next()) |checker| try writer.raw(" {}", .{checker});
+    }
+    try writer.raw("\n", .{});
     try writer.flush();
 }
 
@@ -108,7 +118,7 @@ pub fn format(board: *const Board, comptime _: []const u8, _: std.fmt.FormatOpti
     var blanks: usize = 0;
     for (0..81) |place_index| {
         const file, const sq = displayIndexToSquare(place_index);
-        const place = board.board_mailbox[sq];
+        const place = board.board_mailbox[sq.raw];
         if (place.ptype == .none) {
             blanks += 1;
         } else {
@@ -312,14 +322,14 @@ pub fn parseParts(board_str: []const u8, color_str: []const u8, hand_str: []cons
 
 fn displayIndexToSquare(index: usize) struct { usize, Square } {
     const file = index % 9;
-    const sq: Square = @intCast(72 - (index - file) + file);
+    const sq = Square.make(@intCast(72 - (index - file) + file));
     return .{ file, sq };
 }
 
 fn placeBoard(self: *Board, color: Color, ptype: PieceType, sq: Square) void {
     self.colors[@intFromEnum(color)].orWith(Bitboard.fromSq(sq));
     self.pieces[ptype.toBitboardIndex()].orWith(Bitboard.fromSq(sq));
-    self.board_mailbox[sq] = .{ .color = color, .ptype = ptype };
+    self.board_mailbox[sq.raw] = .{ .color = color, .ptype = ptype };
 }
 
 fn placeHandFromParse(self: *Board, color: Color, ptype: PieceType, count: usize) !void {
@@ -392,7 +402,7 @@ pub const Hand = packed struct(u32) {
                 const s = t[@intFromEnum(ptype)][@intFromEnum(c)];
                 if (count == 0) return;
                 if (count == 1) return w.raw("{s} ", .{s});
-                return w.raw("{s}{} ", .{ s, count });
+                return w.raw("{s}×{} ", .{ s, count });
             }
         }.op;
         try op(writer, hand.rook, table, color, .rook);

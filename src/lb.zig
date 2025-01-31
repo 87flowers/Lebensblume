@@ -12,7 +12,23 @@ pub const max_search_ply = 64;
 
 pub const Score = i32;
 
-pub const Square = u7;
+pub const Square = packed struct(u7) {
+    raw: u7,
+
+    pub fn make(raw: u7) Square {
+        return .{ .raw = raw };
+    }
+
+    pub fn bitboard(sq: Square) Bitboard {
+        return Bitboard.fromSq(sq);
+    }
+
+    pub fn format(sq: Square, comptime _: []const u8, _: std.fmt.FormatOptions, writer: anytype) !void {
+        const file = 9 - (sq.raw % 9);
+        const rank = 9 - (sq.raw / 9);
+        try writer.print("{c}{c}", .{ '0' + file, 'a' + rank - 1 });
+    }
+};
 
 pub const ParseError = error{
     InvalidChar,
@@ -132,7 +148,7 @@ pub const Move = packed struct(u16) {
 
     pub fn makeMove(f: Square, to: Square, promo: bool) Move {
         return .{
-            .src = f,
+            .src = f.raw,
             .drop = false,
             .to = to,
             .promo = promo,
@@ -150,7 +166,7 @@ pub const Move = packed struct(u16) {
 
     pub fn from(m: Move) Square {
         assert(!m.drop);
-        return m.src;
+        return Square.make(m.src);
     }
 
     pub fn ptype(m: Move) PieceType {

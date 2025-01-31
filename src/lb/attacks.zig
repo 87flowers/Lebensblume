@@ -1,12 +1,16 @@
 pub const sliders = @import("attacks/sliders.zig");
 
-pub const pawn = genRelative(struct {
+const pawn_table = genRelative(struct {
     fn op(piece: Bitboard, active_color: Color) Bitboard {
         return piece.shiftRelative(.n, active_color);
     }
 }.op);
 
-pub const knight = genRelative(struct {
+pub fn pawn(sq: lb.Square, pawn_color: Color) Bitboard {
+    return pawn_table[@intFromEnum(pawn_color)][sq.raw];
+}
+
+const knight_table = genRelative(struct {
     fn op(piece: Bitboard, active_color: Color) Bitboard {
         var result = Bitboard{};
         result.orWith(piece.shiftRelative(.n, active_color).shiftRelative(.nw, active_color));
@@ -15,7 +19,11 @@ pub const knight = genRelative(struct {
     }
 }.op);
 
-pub const silver = genRelative(struct {
+pub fn knight(sq: lb.Square, knight_color: Color) Bitboard {
+    return knight_table[@intFromEnum(knight_color)][sq.raw];
+}
+
+const silver_table = genRelative(struct {
     fn op(piece: Bitboard, active_color: Color) Bitboard {
         var result = Bitboard{};
         result.orWith(piece.shiftRelative(.nw, active_color));
@@ -27,7 +35,11 @@ pub const silver = genRelative(struct {
     }
 }.op);
 
-pub const gold = genRelative(struct {
+pub fn silver(sq: lb.Square, silver_color: Color) Bitboard {
+    return silver_table[@intFromEnum(silver_color)][sq.raw];
+}
+
+const gold_table = genRelative(struct {
     fn op(piece: Bitboard, active_color: Color) Bitboard {
         var result = Bitboard{};
         result.orWith(piece.shiftRelative(.nw, active_color));
@@ -40,7 +52,11 @@ pub const gold = genRelative(struct {
     }
 }.op);
 
-pub const king = gen(struct {
+pub fn gold(sq: lb.Square, gold_color: Color) Bitboard {
+    return gold_table[@intFromEnum(gold_color)][sq.raw];
+}
+
+const king_table = gen(struct {
     fn op(piece: Bitboard) Bitboard {
         var result = Bitboard{};
         result.orWith(piece.shift(.n));
@@ -55,28 +71,32 @@ pub const king = gen(struct {
     }
 }.op);
 
+pub fn king(sq: lb.Square) Bitboard {
+    return king_table[sq.raw];
+}
+
 pub fn rook(sq: lb.Square, blockers: Bitboard) Bitboard {
-    const mask = sliders.rook[sq].blocker_mask;
+    const mask = sliders.rook[sq.raw].blocker_mask;
     const x = compressBlockers(blockers.raw & mask);
     const m = compressBlockers(mask);
     const index = pext(x, m);
-    return Bitboard.make(sliders.rook[sq].dest_table[index]);
+    return Bitboard.make(sliders.rook[sq.raw].dest_table[index]);
 }
 
 pub fn bishop(sq: lb.Square, blockers: Bitboard) Bitboard {
-    const mask = sliders.bishop[sq].blocker_mask;
+    const mask = sliders.bishop[sq.raw].blocker_mask;
     const x = compressBlockers(blockers.raw & mask);
     const m = compressBlockers(mask);
     const index = pext(x, m);
-    return Bitboard.make(sliders.bishop[sq].dest_table[index]);
+    return Bitboard.make(sliders.bishop[sq.raw].dest_table[index]);
 }
 
 pub fn lance(sq: lb.Square, lance_color: Color, blockers: Bitboard) Bitboard {
-    const mask = sliders.lance[@intFromEnum(lance_color)][sq].blocker_mask;
+    const mask = sliders.lance[@intFromEnum(lance_color)][sq.raw].blocker_mask;
     const x = compressBlockers(blockers.raw & mask);
     const m = compressBlockers(mask);
     const index = pext(x, m);
-    return Bitboard.make(sliders.lance[@intFromEnum(lance_color)][sq].dest_table[index]);
+    return Bitboard.make(sliders.lance[@intFromEnum(lance_color)][sq.raw].dest_table[index]);
 }
 
 inline fn pext(x: u64, m: u64) usize {
@@ -99,7 +119,7 @@ fn pextComptime(x: u64, m: u64) usize {
     return result;
 }
 
-fn compressBlockers(bb: u81) u64 {
+inline fn compressBlockers(bb: u81) u64 {
     const top: u64 = @as(u64, @intCast(bb >> 64)) << 1;
     const bot: u64 = @truncate(bb);
     return bot | top;
@@ -110,7 +130,7 @@ fn gen(comptime op: fn (Bitboard) Bitboard) [81]Bitboard {
         @setEvalBranchQuota(100_000);
         var result: [81]Bitboard = @splat(.{});
         for (0..81) |sq| {
-            const piece = Bitboard.fromSq(sq);
+            const piece = Bitboard.fromSq(Square.make(sq));
             result[sq] = op(piece);
         }
         return result;
@@ -123,7 +143,7 @@ fn genRelative(comptime op: fn (Bitboard, Color) Bitboard) [2][81]Bitboard {
         var result: [2][81]Bitboard = @splat(@splat(.{}));
         for ([2]Color{ .sente, .gote }) |active_color| {
             for (0..81) |sq| {
-                const piece = Bitboard.fromSq(sq);
+                const piece = Bitboard.fromSq(Square.make(sq));
                 result[@intFromEnum(active_color)][sq] = op(piece, active_color);
             }
         }
@@ -134,3 +154,4 @@ fn genRelative(comptime op: fn (Bitboard, Color) Bitboard) [2][81]Bitboard {
 const lb = @import("../lb.zig");
 const Bitboard = lb.Bitboard;
 const Color = lb.Color;
+const Square = lb.Square;

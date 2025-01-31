@@ -66,8 +66,8 @@ const Usi = struct {
             const color = it.next() orelse "";
             const hand = it.next() orelse "";
             const ply = it.next() orelse "";
-            g.setPosition(lb.Board.parseParts(board_str, color, hand, ply) catch
-                return self.out.protocolError("position", "invalid sfen provided", .{}));
+            g.setPosition(lb.Board.parseParts(board_str, color, hand, ply) catch |err|
+                return self.out.protocolError("position", "invalid sfen provided: {}", .{err}));
         } else {
             try self.out.unrecognisedToken("position", pos_type);
             return;

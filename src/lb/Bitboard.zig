@@ -28,29 +28,38 @@ pub inline fn make(raw: u81) Bitboard {
     return .{ .raw = raw };
 }
 
-pub inline fn fromSq(sq: lb.Square) Bitboard {
-    return .{ .raw = @as(u81, 1) << sq };
+pub inline fn fromSq(sq: Square) Bitboard {
+    return .{ .raw = @as(u81, 1) << sq.raw };
 }
 
-pub inline fn set(bb: *Bitboard, sq: lb.Square) void {
-    bb.raw |= @as(u81, 1) << sq;
+pub inline fn toSq(bb: Bitboard) Square {
+    assert(bb.count() == 1);
+    return Square.make(@intCast(@ctz(bb.raw)));
 }
 
-pub inline fn clear(bb: *Bitboard, sq: lb.Square) void {
-    bb.raw &= ~(@as(u81, 1) << sq);
+pub inline fn set(bb: *Bitboard, sq: Square) void {
+    bb.raw |= @as(u81, 1) << sq.raw;
 }
 
-pub inline fn put(bb: *Bitboard, sq: lb.Square, value: u1) void {
+pub inline fn clear(bb: *Bitboard, sq: Square) void {
+    bb.raw &= ~(@as(u81, 1) << sq.raw);
+}
+
+pub inline fn put(bb: *Bitboard, sq: Square, value: u1) void {
     bb.clear(sq);
-    bb.raw |= @as(u81, value) << sq;
+    bb.raw |= @as(u81, value) << sq.raw;
 }
 
-pub inline fn get(bb: Bitboard, sq: lb.Square) u1 {
-    return @truncate(bb.raw >> sq);
+pub inline fn get(bb: Bitboard, sq: Square) u1 {
+    return @truncate(bb.raw >> sq.raw);
 }
 
 pub inline fn empty(bb: Bitboard) bool {
     return bb.raw == 0;
+}
+
+pub inline fn count(bb: Bitboard) usize {
+    return @popCount(bb.raw);
 }
 
 pub inline fn @"and"(a: Bitboard, b: Bitboard) Bitboard {
@@ -78,7 +87,7 @@ pub inline fn shift(bb: Bitboard, dir: Direction) Bitboard {
     };
 }
 
-pub inline fn shiftRelative(bb: Bitboard, dir: Direction, perspective: lb.Color) Bitboard {
+pub inline fn shiftRelative(bb: Bitboard, dir: Direction, perspective: Color) Bitboard {
     return switch (perspective) {
         .sente => bb.shift(dir),
         .gote => bb.shift(@enumFromInt(@intFromEnum(dir) +% 4)),
@@ -111,11 +120,11 @@ pub inline fn iterate(bb: Bitboard) struct {
 
 pub inline fn iterateSquares(bb: Bitboard) struct {
     bits: u81,
-    pub fn next(self: *@This()) ?lb.Square {
+    pub fn next(self: *@This()) ?Square {
         if (self.bits == 0) return null;
         const lsb = self.bits & -%self.bits;
         self.bits ^= lsb;
-        return @intCast(@ctz(lsb));
+        return Square.make(@intCast(@ctz(lsb)));
     }
 } {
     return .{ .bits = bb.raw };
@@ -129,4 +138,7 @@ pub const Direction = enum(u3) { n = 0, ne = 1, e = 2, se = 3, s = 4, sw = 5, w 
 
 const Bitboard = @This();
 const std = @import("std");
+const assert = std.debug.assert;
 const lb = @import("../lb.zig");
+const Color = lb.Color;
+const Square = lb.Square;

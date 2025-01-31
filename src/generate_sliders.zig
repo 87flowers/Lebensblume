@@ -29,17 +29,21 @@ pub fn main() !void {
 
 fn gen(output: anytype, indent: []const u8, directions: []const Direction) !void {
     for (0..81) |sq| {
-        const piece = Bitboard.fromSq(@intCast(sq));
+        const piece = Bitboard.fromSq(Square.make(@intCast(sq)));
         const blockers = genPotentialBlockers(piece, directions);
         // const moves_no_blockers = genMoves(piece, directions, Bitboard{});
         try output.print("{s}.{{\n", .{indent});
         try output.print("{s}    .blocker_mask = 0x{x},\n", .{ indent, blockers.raw });
         try output.print("{s}    .dest_table = &[_]u81{{\n", .{indent});
-        var subs = subsets(compress(blockers.raw, blockers.raw));
-        while (subs.next()) |sub| {
-            const current = Bitboard.make(decompress(sub, blockers.raw));
+        const m = compress(blockers.raw, blockers.raw);
+        var i: u64 = 0;
+        while (true) {
+            const current = Bitboard.make(decompress(pdep(i, m), blockers.raw));
+            if (current.raw == 0 and i != 0) break;
             const moves = genMoves(piece, directions, current);
             try output.print("{s}        0x{x},\n", .{ indent, moves.raw });
+            assert(i == pext(compress(current.raw, blockers.raw), compress(blockers.raw, blockers.raw)));
+            i += 1;
         }
         try output.print("{s}    }},\n", .{indent});
         try output.print("{s}}},\n", .{indent});
@@ -59,6 +63,22 @@ pub inline fn subsets(x: u64) struct {
     return .{ .set = x, .current = -%x & x };
 }
 
+inline fn pext(x: u64, m: u64) usize {
+    return asm ("pext %[m], %[x], %[result]"
+        : [result] "=r" (-> u64),
+        : [x] "r" (x),
+          [m] "r" (m),
+    );
+}
+
+inline fn pdep(x: u64, m: u64) usize {
+    return asm ("pdep %[m], %[x], %[result]"
+        : [result] "=r" (-> u64),
+        : [x] "r" (x),
+          [m] "r" (m),
+    );
+}
+
 const compression_shift = 1;
 
 fn compress(x: u81, mask: u81) u64 {
@@ -67,6 +87,7 @@ fn compress(x: u81, mask: u81) u64 {
     const bot: u64 = @truncate(x);
     // std.debug.print("{b} {b} {b} {b}\n", .{top, bot, x, mask});
     assert(bot & top == 0);
+    assert(top & mask == 0);
     const result = bot | top;
     return result;
 }
@@ -107,7 +128,7 @@ fn genPotentialBlockers(piece: Bitboard, directions: []const Direction) Bitboard
 }
 
 test "rook on 9i" {
-    const piece = Bitboard.fromSq(0);
+    const piece = Bitboard.fromSq(Square.make(0));
     const moves = genMoves(piece, &.{ .n, .e, .w, .s }, Bitboard{});
     const blockers = genPotentialBlockers(piece, &.{ .n, .e, .w, .s });
     try std.testing.expectEqual(0b000000001_000000001_000000001_000000001_000000001_000000001_000000001_000000001_111111110, moves.raw);
@@ -119,3 +140,4 @@ const assert = std.debug.assert;
 const lb = @import("lb.zig");
 const Bitboard = lb.Bitboard;
 const Direction = lb.Bitboard.Direction;
+const Square = lb.Square;
