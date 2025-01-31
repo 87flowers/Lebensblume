@@ -9,6 +9,7 @@ ply: usize = 0,
 checkers: Bitboard,
 
 pub fn defaultBoard() Board {
+    @setEvalBranchQuota(100_000);
     return comptime parse("lnsgkgsnl/1r5b1/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL b - 1") catch unreachable;
 }
 
@@ -20,49 +21,58 @@ pub fn move(board: *Board, m: Move) void {
     _ = .{ board, m };
 }
 
+pub fn getColor(board: *const Board, color: Color) Bitboard {
+    return board.colors[@intFromEnum(color)];
+}
+
+pub fn getOccupied(board: *const Board) Bitboard {
+    return Bitboard.@"or"(board.colors[0], board.colors[1]);
+}
+
+pub fn getPieces(board: *const Board, color: Color, ptype: PieceType) Bitboard {
+    return Bitboard.@"and"(board.colors[@intFromEnum(color)], board.pieces[ptype.toBitboardIndex()]);
+}
+
+pub fn getPromoteds(board: *const Board, color: Color) Bitboard {
+    return Bitboard.@"and"(board.colors[@intFromEnum(color)], board.pieces[board.pieces.len - 1]);
+}
+
 fn generateCheckers(board: *Board) void {
     board.checkers = .{};
 
     const friendly_color = board.active_color;
     const enemy_color = board.active_color.invert();
-    const friendly = board.colors[@intFromEnum(friendly_color)];
-    const enemy = board.colors[@intFromEnum(enemy_color)];
 
-    const friendly_king = Bitboard.@"and"(friendly, board.pieces[PieceType.king.toBitboardIndex()]);
+    const friendly_king = board.getPieces(friendly_color, .king);
     const friendly_king_sq = friendly_king.toSq();
 
-    const orthogonal_potential_checkers = lb.attacks.rook(friendly_king_sq, Bitboard.@"or"(enemy, friendly)).@"and"(enemy);
-    const diagonal_potential_checkers = lb.attacks.bishop(friendly_king_sq, Bitboard.@"or"(enemy, friendly)).@"and"(enemy);
+    const blockers = board.getOccupied();
 
-    var potential_checkers_iterator = Bitboard.@"or"(orthogonal_potential_checkers, diagonal_potential_checkers).iterate();
-    while (potential_checkers_iterator.next()) |potential_checker| {
-        const potential_checker_sq = potential_checker.toSq();
-        switch (board.board_mailbox[potential_checker_sq.raw].ptype) {
-            .none => unreachable,
-            .pawn => if (!lb.attacks.pawn(potential_checker_sq, enemy_color).@"and"(friendly_king).empty()) board.checkers.orWith(potential_checker),
-            .bishop => if (!diagonal_potential_checkers.@"and"(potential_checker).empty()) board.checkers.orWith(potential_checker),
-            .rook => if (!orthogonal_potential_checkers.@"and"(potential_checker).empty()) board.checkers.orWith(potential_checker),
-            .lance => if (!lb.attacks.lance(potential_checker_sq, enemy_color, .{}).@"and"(friendly_king).empty()) board.checkers.orWith(potential_checker),
-            .knight => {},
-            .silver => if (!lb.attacks.silver(potential_checker_sq, enemy_color).@"and"(friendly_king).empty()) board.checkers.orWith(potential_checker),
-            .gold, .tokin, .nari_lance, .nari_knight, .nari_silver => if (!lb.attacks.gold(potential_checker_sq, enemy_color).@"and"(friendly_king).empty()) board.checkers.orWith(potential_checker),
-            .king => {},
-            .horse => {
-                if (!diagonal_potential_checkers.@"and"(potential_checker).empty()) board.checkers.orWith(potential_checker);
-                if (!lb.attacks.king(potential_checker_sq).@"and"(friendly_king).empty()) board.checkers.orWith(potential_checker);
-            },
-            .dragon => {
-                if (!orthogonal_potential_checkers.@"and"(potential_checker).empty()) board.checkers.orWith(potential_checker);
-                if (!lb.attacks.king(potential_checker_sq).@"and"(friendly_king).empty()) board.checkers.orWith(potential_checker);
-            },
-        }
-    }
+    const orthogonal_checkers = lb.attacks.rook(friendly_king_sq, blockers).@"and"(Bitboard.@"or"(board.getPieces(enemy_color, .rook), board.getPieces(enemy_color, .dragon)));
+    board.checkers.orWith(orthogonal_checkers);
 
-    var knight_potential_checkers_iterator = lb.attacks.knight(friendly_king_sq, friendly_color).@"and"(enemy).iterate();
-    while (knight_potential_checkers_iterator.next()) |potential_checker| {
-        const potential_checker_sq = @ctz(potential_checker.raw);
-        if (board.board_mailbox[potential_checker_sq].ptype == .knight) board.checkers.orWith(potential_checker);
-    }
+    const diagonal_checkers = lb.attacks.bishop(friendly_king_sq, blockers).@"and"(Bitboard.@"or"(board.getPieces(enemy_color, .bishop), board.getPieces(enemy_color, .horse)));
+    board.checkers.orWith(diagonal_checkers);
+
+    const pawn_checkers = lb.attacks.pawn(friendly_king_sq, friendly_color).@"and"(board.getPieces(enemy_color, .pawn));
+    board.checkers.orWith(pawn_checkers);
+
+    const lance_checkers = lb.attacks.lance(friendly_king_sq, friendly_color, blockers).@"and"(board.getPieces(enemy_color, .lance));
+    board.checkers.orWith(lance_checkers);
+
+    const knight_checkers = lb.attacks.knight(friendly_king_sq, friendly_color).@"and"(board.getPieces(enemy_color, .knight));
+    board.checkers.orWith(knight_checkers);
+
+    const silver_checkers = lb.attacks.silver(friendly_king_sq, friendly_color).@"and"(board.getPieces(enemy_color, .silver));
+    board.checkers.orWith(silver_checkers);
+
+    const golds = board.getPieces(enemy_color, .gold).@"or"(board.getPieces(enemy_color, .tokin)).@"or"(board.getPromoteds(enemy_color));
+    const golds_checkers = lb.attacks.gold(friendly_king_sq, friendly_color).@"and"(golds);
+    board.checkers.orWith(golds_checkers);
+
+    const rings = Bitboard.@"or"(board.getPieces(enemy_color, .horse), board.getPieces(enemy_color, .dragon));
+    const rings_checkers = lb.attacks.king(friendly_king_sq).@"and"(rings);
+    board.checkers.orWith(rings_checkers);
 }
 
 pub fn prettyPrint(board: *const Board, writer: anytype, language: PrintLanguage) !void {

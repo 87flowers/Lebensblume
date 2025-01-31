@@ -109,14 +109,16 @@ inline fn pext(x: u64, m: u64) usize {
 }
 
 fn pextComptime(x: u64, m: u64) usize {
-    var result: usize = 0;
-    var bb: u64 = 1;
-    var mask = m;
-    while (mask != 0) : (bb += bb) {
-        if (x & mask & -%mask != 0) result |= bb;
-        mask &= mask - 1;
+    comptime {
+        var result: usize = 0;
+        var bb: u64 = 1;
+        var mask = m;
+        while (mask != 0) : (bb += bb) {
+            if (x & mask & -%mask != 0) result |= bb;
+            mask &= mask - 1;
+        }
+        return result;
     }
-    return result;
 }
 
 inline fn compressBlockers(bb: u81) u64 {
