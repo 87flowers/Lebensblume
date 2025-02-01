@@ -70,6 +70,93 @@ pub inline fn isInCheck(board: *const Board) bool {
     return !board.checkers.empty();
 }
 
+pub fn getAllNonKingAttackers(board: *const Board, sq: Square, attacker_color: Color) Bitboard {
+    const defender_color = attacker_color.invert();
+    const occupied = board.getOccupied();
+
+    var result = Bitboard{};
+
+    const orthogonals = Bitboard.@"or"(board.getPieces(attacker_color, .rook), board.getPieces(attacker_color, .dragon));
+    const diagonals = Bitboard.@"or"(board.getPieces(attacker_color, .bishop), board.getPieces(attacker_color, .horse));
+    const rings = Bitboard.@"or"(board.getPieces(attacker_color, .horse), board.getPieces(attacker_color, .dragon));
+    const golds = board.getPieces(attacker_color, .gold).@"or"(board.getPieces(attacker_color, .tokin)).@"or"(board.getPromoteds(attacker_color));
+
+    result.orWith(lb.attacks.rook(sq, occupied).@"and"(orthogonals));
+    result.orWith(lb.attacks.bishop(sq, occupied).@"and"(diagonals));
+    result.orWith(lb.attacks.king(sq).@"and"(rings));
+    result.orWith(lb.attacks.gold(sq, defender_color).@"and"(golds));
+    result.orWith(lb.attacks.pawn(sq, defender_color).@"and"(board.getPieces(attacker_color, .pawn)));
+    result.orWith(lb.attacks.lance(sq, defender_color, occupied).@"and"(board.getPieces(attacker_color, .lance)));
+    result.orWith(lb.attacks.knight(sq, defender_color).@"and"(board.getPieces(attacker_color, .knight)));
+    result.orWith(lb.attacks.silver(sq, defender_color).@"and"(board.getPieces(attacker_color, .silver)));
+
+    return result;
+}
+
+pub fn getPinned(board: *const Board, king_color: Color) Bitboard {
+    const friendly_color = king_color;
+    const enemy_color = king_color.invert();
+
+    const friendly_king = board.getPieces(friendly_color, .king);
+    const friendly_king_sq = friendly_king.toSq();
+
+    const friendly = board.getColor(friendly_color);
+    const enemy = board.getColor(enemy_color);
+
+    var result = Bitboard{};
+
+    const orthogonals = Bitboard.@"or"(board.getPieces(enemy_color, .rook), board.getPieces(enemy_color, .dragon));
+    const diagonals = Bitboard.@"or"(board.getPieces(enemy_color, .bishop), board.getPieces(enemy_color, .horse));
+
+    const orthogonal_rays = lb.attacks.rook(friendly_king_sq, enemy);
+    const diagonal_rays = lb.attacks.bishop(friendly_king_sq, enemy);
+
+    const orthogonal_pinners = Bitboard.@"or"(
+        orthogonal_rays.@"and"(orthogonals),
+        lb.attacks.lance(friendly_king_sq, friendly_color, enemy).@"and"(board.getPieces(enemy_color, .lance)),
+    );
+    const diagonal_pinners = diagonal_rays.@"and"(diagonals);
+
+    var orthogonal_pinners_iter = orthogonal_pinners.iterateSquares();
+    while (orthogonal_pinners_iter.next()) |pinner| {
+        const ray = orthogonal_rays.@"and"(lb.attacks.rook(pinner, friendly_king));
+        const potential_pinned = ray.@"and"(friendly);
+        if (potential_pinned.count() == 1) result.orWith(potential_pinned);
+    }
+
+    var diagonal_pinners_iter = diagonal_pinners.iterateSquares();
+    while (diagonal_pinners_iter.next()) |pinner| {
+        const ray = diagonal_rays.@"and"(lb.attacks.bishop(pinner, friendly_king));
+        const potential_pinned = ray.@"and"(friendly);
+        if (potential_pinned.count() == 1) result.orWith(potential_pinned);
+    }
+
+    return result;
+}
+
+
+pub fn getAttackMap(board: *const Board, attacker_color: Color) Bitboard {
+    const occupied = board.getOccupied();
+
+    var result = Bitboard{};
+
+    const orthogonals = Bitboard.@"or"(board.getPieces(attacker_color, .rook), board.getPieces(attacker_color, .dragon));
+    const diagonals = Bitboard.@"or"(board.getPieces(attacker_color, .bishop), board.getPieces(attacker_color, .horse));
+    const rings = Bitboard.@"or"(board.getPieces(attacker_color, .horse), board.getPieces(attacker_color, .dragon));
+    const golds = board.getPieces(attacker_color, .gold).@"or"(board.getPieces(attacker_color, .tokin)).@"or"(board.getPromoteds(attacker_color));
+
+    result.orWith(lb.attacks.allRooks(orthogonals, occupied));
+    result.orWith(lb.attacks.allBishops(diagonals, occupied));
+    result.orWith(lb.attacks.allKings(Bitboard.@"or"(rings, board.getPieces(attacker_color, .king))));
+    result.orWith(lb.attacks.allGolds(golds, attacker_color));
+    result.orWith(lb.attacks.allPawns(board.getPieces(attacker_color, .pawn), attacker_color));
+    result.orWith(lb.attacks.allLances(board.getPieces(attacker_color, .lance), attacker_color, occupied));
+    result.orWith(lb.attacks.allKnights(board.getPieces(attacker_color, .knight), attacker_color));
+    result.orWith(lb.attacks.allSilvers(board.getPieces(attacker_color, .silver), attacker_color));
+
+    return result;
+}
+
 fn precompute(board: *Board) void {
     const friendly_color = board.active_color;
     const enemy_color = board.active_color.invert();
@@ -77,85 +164,9 @@ fn precompute(board: *Board) void {
     const friendly_king = board.getPieces(friendly_color, .king);
     const friendly_king_sq = friendly_king.toSq();
 
-    const orthogonals = Bitboard.@"or"(board.getPieces(enemy_color, .rook), board.getPieces(enemy_color, .dragon));
-    const diagonals = Bitboard.@"or"(board.getPieces(enemy_color, .bishop), board.getPieces(enemy_color, .horse));
-    const rings = Bitboard.@"or"(board.getPieces(enemy_color, .horse), board.getPieces(enemy_color, .dragon));
-    const golds = board.getPieces(enemy_color, .gold).@"or"(board.getPieces(enemy_color, .tokin)).@"or"(board.getPromoteds(enemy_color));
-
-    const occupied = board.getOccupied();
-
-    // Checkers
-    {
-        board.checkers = .{};
-
-        const orthogonal_checkers = lb.attacks.rook(friendly_king_sq, occupied).@"and"(orthogonals);
-        board.checkers.orWith(orthogonal_checkers);
-
-        const diagonal_checkers = lb.attacks.bishop(friendly_king_sq, occupied).@"and"(diagonals);
-        board.checkers.orWith(diagonal_checkers);
-
-        const rings_checkers = lb.attacks.king(friendly_king_sq).@"and"(rings);
-        board.checkers.orWith(rings_checkers);
-
-        const golds_checkers = lb.attacks.gold(friendly_king_sq, friendly_color).@"and"(golds);
-        board.checkers.orWith(golds_checkers);
-
-        const pawn_checkers = lb.attacks.pawn(friendly_king_sq, friendly_color).@"and"(board.getPieces(enemy_color, .pawn));
-        board.checkers.orWith(pawn_checkers);
-
-        const lance_checkers = lb.attacks.lance(friendly_king_sq, friendly_color, occupied).@"and"(board.getPieces(enemy_color, .lance));
-        board.checkers.orWith(lance_checkers);
-
-        const knight_checkers = lb.attacks.knight(friendly_king_sq, friendly_color).@"and"(board.getPieces(enemy_color, .knight));
-        board.checkers.orWith(knight_checkers);
-
-        const silver_checkers = lb.attacks.silver(friendly_king_sq, friendly_color).@"and"(board.getPieces(enemy_color, .silver));
-        board.checkers.orWith(silver_checkers);
-    }
-
-    // Pinned
-    {
-        board.pinned = .{};
-        const friendly = board.getColor(friendly_color);
-        const enemy = board.getColor(enemy_color);
-
-        const orthogonal_rays = lb.attacks.rook(friendly_king_sq, enemy);
-        const diagonal_rays = lb.attacks.bishop(friendly_king_sq, enemy);
-
-        const orthogonal_pinners = Bitboard.@"or"(
-            orthogonal_rays.@"and"(orthogonals),
-            lb.attacks.lance(friendly_king_sq, friendly_color, enemy).@"and"(board.getPieces(enemy_color, .lance)),
-        );
-        const diagonal_pinners = diagonal_rays.@"and"(diagonals);
-
-        var orthogonal_pinners_iter = orthogonal_pinners.iterateSquares();
-        while (orthogonal_pinners_iter.next()) |pinner| {
-            const ray = orthogonal_rays.@"and"(lb.attacks.rook(pinner, friendly_king));
-            const potential_pinned = ray.@"and"(friendly);
-            if (potential_pinned.count() == 1) board.pinned.orWith(potential_pinned);
-        }
-
-        var diagonal_pinners_iter = diagonal_pinners.iterateSquares();
-        while (diagonal_pinners_iter.next()) |pinner| {
-            const ray = diagonal_rays.@"and"(lb.attacks.bishop(pinner, friendly_king));
-            const potential_pinned = ray.@"and"(friendly);
-            if (potential_pinned.count() == 1) board.pinned.orWith(potential_pinned);
-        }
-    }
-
-    // Danger
-    {
-        board.danger = .{};
-
-        board.danger.orWith(lb.attacks.allRooks(orthogonals, occupied));
-        board.danger.orWith(lb.attacks.allBishops(diagonals, occupied));
-        board.danger.orWith(lb.attacks.allKings(Bitboard.@"or"(rings, board.getPieces(enemy_color, .king))));
-        board.danger.orWith(lb.attacks.allGolds(golds, enemy_color));
-        board.danger.orWith(lb.attacks.allPawns(board.getPieces(enemy_color, .pawn), enemy_color));
-        board.danger.orWith(lb.attacks.allLances(board.getPieces(enemy_color, .lance), enemy_color, occupied));
-        board.danger.orWith(lb.attacks.allKnights(board.getPieces(enemy_color, .knight), enemy_color));
-        board.danger.orWith(lb.attacks.allSilvers(board.getPieces(enemy_color, .silver), enemy_color));
-    }
+    board.checkers = board.getAllNonKingAttackers(friendly_king_sq, enemy_color);
+    board.pinned = board.getPinned(friendly_color);
+    board.danger = board.getAttackMap(enemy_color);
 }
 
 test "checkers" {
