@@ -46,6 +46,25 @@ pub fn fromSqList(list: []const *const [2]u8) !Bitboard {
     return result;
 }
 
+pub inline fn promoZone(color: Color) Bitboard {
+    return Bitboard.make(switch (color) {
+        .sente => rank_a | (rank_a >> 9) | (rank_a >> 18),
+        .gote => rank_i | (rank_i << 9) | (rank_i << 18),
+    });
+}
+
+pub inline fn rank(id: usize) Bitboard {
+    assert(id < 9);
+    return Bitboard.make(rank_i << (id * 9));
+}
+
+pub inline fn rankRelative(id: usize, perspective: Color) Bitboard {
+    return switch (perspective) {
+        .sente => rank(id),
+        .gote => rank(8 - id),
+    };
+}
+
 pub inline fn set(bb: *Bitboard, sq: Square) void {
     bb.raw |= @as(u81, 1) << sq.raw;
 }

@@ -50,19 +50,6 @@ fn gen(output: anytype, indent: []const u8, directions: []const Direction) !void
     }
 }
 
-pub inline fn subsets(x: u64) struct {
-    set: u64,
-    current: u64,
-    pub fn next(self: *@This()) ?u64 {
-        if (self.current == 0) return null;
-        const result = self.current;
-        self.current = (self.current -% self.set) & self.set;
-        return result;
-    }
-} {
-    return .{ .set = x, .current = -%x & x };
-}
-
 inline fn pext(x: u64, m: u64) usize {
     return asm ("pext %[m], %[x], %[result]"
         : [result] "=r" (-> u64),

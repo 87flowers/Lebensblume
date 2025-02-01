@@ -37,6 +37,13 @@ pub const Square = packed struct(u7) {
         const rank = 9 - (sq.raw / 9);
         try writer.print("{c}{c}", .{ '0' + file, 'a' + rank - 1 });
     }
+
+    pub fn isPromoSquare(sq: Square, color: Color) bool {
+        return switch (color) {
+            .sente => (80 - sq.raw) < 27,
+            .gote => sq.raw < 27,
+        };
+    }
 };
 
 pub const ParseError = error{
@@ -187,7 +194,7 @@ pub const Move = packed struct(u16) {
         if (m.drop) {
             try writer.print("{}*{}", .{ m.ptype(), m.to });
         } else {
-            try writer.print("{}{}{}", .{ m.from(), m.to, if (m.promo) "+" else "" });
+            try writer.print("{}{}{s}", .{ m.from(), m.to, if (m.promo) "+" else "" });
         }
     }
 };
