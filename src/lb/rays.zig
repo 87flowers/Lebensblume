@@ -1,8 +1,12 @@
-pub inline fn ray(from: Square, to: Square) Bitboard {
-    return ray_table[from.raw][to.raw];
+pub inline fn rayToEndInclusive(from: Square, to: Square) Bitboard {
+    return ray_to_end_inclusive_table[from.raw][to.raw];
 }
 
-fn gen() [81][81]Bitboard {
+pub inline fn rayInfinite(from: Square, to: Square) Bitboard {
+    return ray_infinite_table[from.raw][to.raw];
+}
+
+fn genRayToEndInclusive() [81][81]Bitboard {
     comptime {
         @setEvalBranchQuota(100_000);
         var result: [81][81]Bitboard = @splat(@splat(.{}));
@@ -21,7 +25,30 @@ fn gen() [81][81]Bitboard {
     }
 }
 
-const ray_table: [81][81]Bitboard = gen();
+fn genRayInfinite() [81][81]Bitboard {
+    comptime {
+        @setEvalBranchQuota(100_000);
+        var result: [81][81]Bitboard = @splat(@splat(.{}));
+        for (0..81) |from_sq| {
+            const from = Bitboard.fromSq(Square.make(from_sq));
+            for ([_]Direction{ .n, .ne, .e, .se, .s, .sw, .w, .nw }) |dir| {
+                var bb = Bitboard{};
+                var to = from.shift(dir);
+                while (to.raw != 0) : (to = to.shift(dir)) {
+                    bb.orWith(to);
+                }
+                to = from.shift(dir);
+                while (to.raw != 0) : (to = to.shift(dir)) {
+                    result[from.toSq().raw][to.toSq().raw] = bb;
+                }
+            }
+        }
+        return result;
+    }
+}
+
+const ray_to_end_inclusive_table: [81][81]Bitboard = genRayToEndInclusive();
+const ray_infinite_table: [81][81]Bitboard = genRayInfinite();
 
 const lb = @import("../lb.zig");
 const Bitboard = lb.Bitboard;

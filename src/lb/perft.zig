@@ -28,8 +28,8 @@ pub fn go(out: anytype, board: *lb.Board, depth: usize) !usize {
         try out.flush();
     }
     const elapsed: u64 = timer.read();
-    try out.raw("Nodes searched (depth {}): {}\n", .{ depth, result });
-    try out.raw("Search completed in {d:.1}ms ({d:.0} nps)\n", .{ @as(f64, @floatFromInt(elapsed)) / std.time.ns_per_ms, result * std.time.ns_per_s / elapsed });
+    try out.raw("total: {}\n", .{result});
+    try out.raw("perft to depth {} completed in {d:.1}ms ({d:.0} nps)\n", .{ depth, @as(f64, @floatFromInt(elapsed)) / std.time.ns_per_ms, result * std.time.ns_per_s / elapsed });
     try out.flush();
 
     return result;

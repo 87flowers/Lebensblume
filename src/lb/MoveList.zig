@@ -17,7 +17,7 @@ fn generateMovesNoCheckers(self: *MoveList, board: *const Board) void {
 }
 
 fn generateMovesOneChecker(self: *MoveList, board: *const Board) void {
-    const valid_dests = lb.rays.ray(board.getPieces(board.active_color, .king).toSq(), board.checkers.toSq());
+    const valid_dests = lb.rays.rayToEndInclusive(board.getPieces(board.active_color, .king).toSq(), board.checkers.toSq());
     generateNonKingMoves(self, board, valid_dests);
     generateKingMoves(self, board);
     generateDrops(self, board, valid_dests.@"and"(board.checkers.invert()));
@@ -42,80 +42,93 @@ fn generateDrops(self: *MoveList, board: *const Board, valid_dests: Bitboard) vo
     while (hand_ptypes != 0) : (hand_ptypes &= hand_ptypes - 1) {
         const ptype: PieceType = @enumFromInt(@ctz(hand_ptypes) + 1);
         const valid_normal_dests = validNormalDests(board.active_color, ptype);
-        self.splatDrops(ptype, Bitboard.@"and"(valid_dests, valid_normal_dests));
+        self.splatDrops(ptype, valid_dests.@"and"(valid_normal_dests));
     }
 }
 
 fn generateKingMoves(self: *MoveList, board: *const Board) void {
     const king_sq = board.getPieces(board.active_color, .king).toSq();
-    const king_moves = lb.attacks.king(king_sq).@"and"(board.danger.invert()).@"and"(board.getOccupied().invert());
+    const king_moves = lb.attacks.king(king_sq).@"and"(board.danger.invert()).@"and"(board.getColor(board.active_color).invert());
     self.splatNormalMoves(king_sq, king_moves);
 }
 
 fn generateNonKingMoves(self: *MoveList, board: *const Board, valid_dests: Bitboard) void {
     const color = board.active_color;
     const occupied = board.getOccupied();
+    const pinned = board.pinned;
+    const king_sq = board.getPieces(board.active_color, .king).toSq();
 
-    self.generatePieceMoves(board, board.getPieces(color, .rook), valid_dests, occupied, .rook, struct {
+    self.generatePieceMoves(board, board.getPieces(color, .rook), king_sq, pinned, valid_dests, occupied, .rook, struct {
         fn op(from: Square, _: Color, blockers: Bitboard) Bitboard {
             return lb.attacks.rook(from, blockers);
         }
     }.op);
 
-    self.generatePieceMoves(board, board.getPieces(color, .dragon), valid_dests, occupied, .dragon, struct {
+    self.generatePieceMoves(board, board.getPieces(color, .dragon), king_sq, pinned, valid_dests, occupied, .dragon, struct {
         fn op(from: Square, _: Color, blockers: Bitboard) Bitboard {
             return Bitboard.@"or"(lb.attacks.rook(from, blockers), lb.attacks.king(from));
         }
     }.op);
 
-    self.generatePieceMoves(board, board.getPieces(color, .bishop), valid_dests, occupied, .bishop, struct {
+    self.generatePieceMoves(board, board.getPieces(color, .bishop), king_sq, pinned, valid_dests, occupied, .bishop, struct {
         fn op(from: Square, _: Color, blockers: Bitboard) Bitboard {
             return lb.attacks.bishop(from, blockers);
         }
     }.op);
 
-    self.generatePieceMoves(board, board.getPieces(color, .horse), valid_dests, occupied, .horse, struct {
+    self.generatePieceMoves(board, board.getPieces(color, .horse), king_sq, pinned, valid_dests, occupied, .horse, struct {
         fn op(from: Square, _: Color, blockers: Bitboard) Bitboard {
             return Bitboard.@"or"(lb.attacks.bishop(from, blockers), lb.attacks.king(from));
         }
     }.op);
 
-    self.generatePieceMoves(board, board.getPieces(color, .lance), valid_dests, occupied, .lance, struct {
+    self.generatePieceMoves(board, board.getPieces(color, .lance), king_sq, pinned, valid_dests, occupied, .lance, struct {
         fn op(from: Square, piece_color: Color, blockers: Bitboard) Bitboard {
             return lb.attacks.lance(from, piece_color, blockers);
         }
     }.op);
 
     const golds = board.getPieces(color, .gold).@"or"(board.getPieces(color, .tokin)).@"or"(board.getPromoteds(color));
-    self.generatePieceMoves(board, golds, valid_dests, occupied, .gold, struct {
+    self.generatePieceMoves(board, golds, king_sq, pinned, valid_dests, occupied, .gold, struct {
         fn op(from: Square, piece_color: Color, _: Bitboard) Bitboard {
             return lb.attacks.gold(from, piece_color);
         }
     }.op);
 
-    self.generatePieceMoves(board, board.getPieces(color, .silver), valid_dests, occupied, .silver, struct {
+    self.generatePieceMoves(board, board.getPieces(color, .silver), king_sq, pinned, valid_dests, occupied, .silver, struct {
         fn op(from: Square, piece_color: Color, _: Bitboard) Bitboard {
             return lb.attacks.silver(from, piece_color);
         }
     }.op);
 
-    self.generatePieceMoves(board, board.getPieces(color, .knight), valid_dests, occupied, .knight, struct {
+    self.generatePieceMoves(board, board.getPieces(color, .knight), king_sq, pinned, valid_dests, occupied, .knight, struct {
         fn op(from: Square, piece_color: Color, _: Bitboard) Bitboard {
             return lb.attacks.knight(from, piece_color);
         }
     }.op);
 
-    self.generatePieceMoves(board, board.getPieces(color, .pawn), valid_dests, occupied, .pawn, struct {
+    self.generatePieceMoves(board, board.getPieces(color, .pawn), king_sq, pinned, valid_dests, occupied, .pawn, struct {
         fn op(from: Square, piece_color: Color, _: Bitboard) Bitboard {
             return lb.attacks.pawn(from, piece_color);
         }
     }.op);
 }
 
-inline fn generatePieceMoves(self: *MoveList, board: *const Board, from_bb: Bitboard, valid_dests: Bitboard, blockers: Bitboard, comptime ptype: PieceType, op: anytype) void {
-    var from_iterator = from_bb.iterateSquares();
-    while (from_iterator.next()) |from| {
+inline fn generatePieceMoves(self: *MoveList, board: *const Board, from_bb: Bitboard, king_sq: Square, pinned: Bitboard, valid_dests: Bitboard, blockers: Bitboard, comptime ptype: PieceType, op: anytype) void {
+    var nonpinned_from_iterator = from_bb.@"and"(pinned.invert()).iterateSquares();
+    while (nonpinned_from_iterator.next()) |from| {
         const to_bb = op(from, board.active_color, blockers).@"and"(valid_dests);
+        if (comptime ptype.promotable()) {
+            self.splatMaybePromoMoves(board.active_color, from, to_bb, ptype);
+        } else {
+            self.splatNormalMoves(from, to_bb);
+        }
+    }
+
+    var pinned_from_iterator = from_bb.@"and"(pinned).iterateSquares();
+    while (pinned_from_iterator.next()) |from| {
+        const pin_ray = lb.rays.rayInfinite(king_sq, from);
+        const to_bb = op(from, board.active_color, blockers).@"and"(valid_dests).@"and"(pin_ray);
         if (comptime ptype.promotable()) {
             self.splatMaybePromoMoves(board.active_color, from, to_bb, ptype);
         } else {

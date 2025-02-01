@@ -81,8 +81,10 @@ const Usi = struct {
     }
 
     fn usiParseMoves(self: *Usi, it: *Iterator) !void {
-        _ = .{ self, it };
-        unreachable;
+        while (it.next()) |move_str| {
+            const m = lb.Move.parse(move_str) catch return self.out.illegalMoveString(move_str);
+            g.board.move(m);
+        }
     }
 
     fn usiParsePerft(self: *Usi, it: *Iterator) !void {

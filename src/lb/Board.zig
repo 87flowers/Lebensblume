@@ -1,6 +1,6 @@
 colors: [2]Bitboard,
 pieces: [PieceType.bitboards_count]Bitboard,
-hand: [2]u7,
+hand: [2]u8,
 board_mailbox: [81]Place,
 hand_mailbox: [2]Hand,
 active_color: Color = .sente,
@@ -20,30 +20,43 @@ pub fn verify(board: *const Board) void {
 }
 
 pub fn move(board: *Board, m: Move) void {
+    const color_index: u1 = @intFromEnum(board.active_color);
     switch (m.drop) {
         false => {
             const src = board.board_mailbox[m.from().raw];
             assert(src.color == board.active_color and src.ptype != .none);
 
-            board.colors[@intFromEnum(board.active_color)].clear(m.from());
+            board.colors[color_index].clear(m.from());
             board.pieces[src.ptype.toBitboardIndex()].clear(m.from());
             board.board_mailbox[m.from().raw] = Place.empty;
 
             // Is this a capture?
             if (board.board_mailbox[m.to.raw] != Place.empty) {
-                const dest = board.board_mailbox[m.to.raw];
-                assert(dest.color != board.active_color and dest.ptype != .none);
+                const captured = board.board_mailbox[m.to.raw];
+                assert(captured.color != board.active_color and captured.ptype != .none);
 
-                board.colors[@intFromEnum(board.active_color.invert())].clear(m.to);
-                board.pieces[dest.ptype.toBitboardIndex()].clear(m.to);
+                board.colors[~color_index].clear(m.to);
+                board.pieces[captured.ptype.toBitboardIndex()].clear(m.to);
+
+                const hand_ptype = captured.ptype.demote();
+                board.hand[color_index] |= @as(u8, 1) << @intCast(@intFromEnum(hand_ptype) - 1);
+                board.hand_mailbox[color_index].add(hand_ptype);
             }
 
             const dest_ptype = if (m.promo) src.ptype.promote() else src.ptype;
-            board.colors[@intFromEnum(board.active_color)].set(m.to);
+            board.colors[color_index].set(m.to);
             board.pieces[dest_ptype.toBitboardIndex()].set(m.to);
             board.board_mailbox[m.to.raw] = .{ .color = board.active_color, .ptype = dest_ptype };
         },
-        true => unreachable,
+        true => {
+            const remaining = board.hand_mailbox[color_index].remove(m.ptype());
+            board.hand[color_index] &= ~(@as(u8, 1) << @intCast(@intFromEnum(m.ptype()) - 1));
+            board.hand[color_index] |= @as(u8, @intFromBool(remaining > 0)) << @intCast(@intFromEnum(m.ptype()) - 1);
+
+            board.colors[color_index].set(m.to);
+            board.pieces[m.ptype().toBitboardIndex()].set(m.to);
+            board.board_mailbox[m.to.raw] = .{ .color = board.active_color, .ptype = m.ptype() };
+        },
     }
     board.active_color = board.active_color.invert();
     board.ply += 1;
@@ -136,7 +149,7 @@ pub fn getPinned(board: *const Board, king_color: Color) Bitboard {
 
 
 pub fn getAttackMap(board: *const Board, attacker_color: Color) Bitboard {
-    const occupied = board.getOccupied();
+    const occupied = board.getOccupied().@"and"(board.getPieces(attacker_color.invert(), .king).invert());
 
     var result = Bitboard{};
 
@@ -463,8 +476,7 @@ fn placeHandFromParse(self: *Board, color: Color, ptype: PieceType, count: usize
         else => unreachable,
     };
     if (count > max_count or count == 0) return lb.ParseError.InvalidHand;
-    const index = ptype.toBitboardIndex();
-    self.hand[@intFromEnum(color)] = @as(u7, 1) << @intCast(index);
+    self.hand[@intFromEnum(color)] |= @as(u8, 1) << @intCast(@intFromEnum(ptype) - 1);
     switch (ptype) {
         .pawn => {
             if (self.hand_mailbox[@intFromEnum(color)].pawn != 0) return lb.ParseError.InvalidHand;
@@ -506,6 +518,53 @@ pub const Hand = packed struct(u32) {
     knight: u4 = 0,
     silver: u4 = 0,
     gold: u4 = 0,
+
+    pub fn add(hand: *Hand, ptype: PieceType) void {
+        switch (ptype) {
+            .pawn => hand.pawn += 1,
+            .bishop => hand.bishop += 1,
+            .rook => hand.rook += 1,
+            .lance => hand.lance += 1,
+            .knight => hand.knight += 1,
+            .silver => hand.silver += 1,
+            .gold => hand.gold += 1,
+            else => unreachable,
+        }
+    }
+
+    pub fn remove(hand: *Hand, ptype: PieceType) usize {
+        switch (ptype) {
+            .pawn => {
+                hand.pawn -= 1;
+                return hand.pawn;
+            },
+            .bishop => {
+                hand.bishop -= 1;
+                return hand.bishop;
+            },
+            .rook => {
+                hand.rook -= 1;
+                return hand.rook;
+            },
+            .lance => {
+                hand.lance -= 1;
+                return hand.lance;
+            },
+            .knight => {
+                hand.knight -= 1;
+                return hand.knight;
+            },
+            .silver => {
+                hand.silver -= 1;
+                return hand.silver;
+            },
+            .gold => {
+                hand.gold -= 1;
+                return hand.gold;
+            },
+            else => unreachable,
+        }
+    }
 
     pub fn prettyPrint(hand: *const Hand, writer: anytype, color: Color, language: PrintLanguage) !void {
         const table = switch (language) {

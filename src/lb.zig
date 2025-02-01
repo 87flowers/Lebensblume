@@ -76,12 +76,17 @@ pub const PieceType = enum(u4) {
 
     pub fn promotable(ptype: PieceType) bool {
         const pt = @intFromEnum(ptype);
-        return pt >= @intFromEnum(PieceType.pawn) or pt <= @intFromEnum(PieceType.silver);
+        return pt >= @intFromEnum(PieceType.pawn) and pt <= @intFromEnum(PieceType.silver);
     }
 
     pub fn promote(ptype: PieceType) PieceType {
         assert(ptype != .none and ptype != .gold);
         return @enumFromInt(@intFromEnum(ptype) | 0o10);
+    }
+
+    pub fn demote(ptype: PieceType) PieceType {
+        if (ptype.promoted()) return @enumFromInt(@intFromEnum(ptype) & 0o07);
+        return ptype;
     }
 
     pub fn promoted(ptype: PieceType) bool {
@@ -181,7 +186,28 @@ pub const Move = packed struct(u16) {
     }
 
     pub fn parse(str: []const u8) !Move {
-        _ = str;
+        if (str.len < 4 or str.len > 5) return ParseError.InvalidLength;
+        if (str[1] == '*') {
+            if (str.len != 4) return ParseError.InvalidLength;
+            const pt: PieceType = switch (str[0]) {
+                'P' => .pawn,
+                'N' => .knight,
+                'L' => .lance,
+                'S' => .silver,
+                'G' => .gold,
+                'B' => .bishop,
+                'R' => .rook,
+                else => return ParseError.InvalidChar,
+            };
+            const to = try Square.parse(str[2..][0..2].*);
+            return Move.makeDrop(pt, to);
+        } else {
+            if (str.len == 5 and str[4] != '+') return ParseError.InvalidChar;
+            const promo = str.len == 5;
+            const f = try Square.parse(str[0..][0..2].*);
+            const to = try Square.parse(str[2..][0..2].*);
+            return Move.makeMove(f, to, promo);
+        }
     }
 
     pub fn from(m: Move) Square {
