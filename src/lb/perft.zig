@@ -27,9 +27,9 @@ pub fn go(out: anytype, board: *lb.Board, depth: usize) !usize {
         try out.raw("{}: {}\n", .{ m, p });
         try out.flush();
     }
-    const elapsed: u64 = timer.read();
+    const elapsed: f64 = @floatFromInt(timer.read());
     try out.raw("total: {}\n", .{result});
-    try out.raw("perft to depth {} completed in {}ms ({} nps)\n", .{ depth, elapsed / std.time.ns_per_ms, result * std.time.ns_per_s / elapsed });
+    try out.raw("perft to depth {} completed in {d:.1}ms ({d:.1} Mnps)\n", .{ depth, elapsed / std.time.ns_per_ms, @as(f64, @floatFromInt(result)) * std.time.ns_per_s / (1_000_000 * elapsed) });
     try out.flush();
 
     return result;
