@@ -117,6 +117,12 @@ test "checkers" {
     try std.testing.expectEqual(expect, board.checkers);
 }
 
+test "pinned" {
+    const board = try Board.parse("b3l1k1b/1P7/2P1P1P2/9/rGGGK1G1r/9/6+s2/9/b3r3b b - 1");
+    try std.testing.expectEqual(try Bitboard.fromSqList(&.{ "3e", "5c", "3c" }), board.pinned);
+    try std.testing.expectEqual(try Bitboard.fromSqList(&.{ "9i", "5i" }), board.checkers);
+}
+
 pub fn prettyPrint(board: *const Board, writer: anytype, language: PrintLanguage) !void {
     const indent = "    ";
     try writer.raw("\n", .{});
