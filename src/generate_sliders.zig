@@ -3,8 +3,8 @@ pub fn main() !void {
     const output = bufw.writer();
     try output.print("{s}\n", .{
         \\pub const SliderTable = struct {
-        \\    blocker_mask: u81,
-        \\    dest_table: []const u81,
+        \\    blocker_mask: u128,
+        \\    dest_table: []const u128,
         \\};
     });
     try output.print("\n", .{});
@@ -34,7 +34,7 @@ fn gen(output: anytype, indent: []const u8, directions: []const Direction) !void
         // const moves_no_blockers = genMoves(piece, directions, Bitboard{});
         try output.print("{s}.{{\n", .{indent});
         try output.print("{s}    .blocker_mask = 0x{x},\n", .{ indent, blockers.raw });
-        try output.print("{s}    .dest_table = &[_]u81{{\n", .{indent});
+        try output.print("{s}    .dest_table = &[_]u128{{\n", .{indent});
         const m = compress(blockers.raw, blockers.raw);
         var i: u64 = 0;
         while (true) {
@@ -68,7 +68,7 @@ inline fn pdep(x: u64, m: u64) usize {
 
 const compression_shift = 1;
 
-fn compress(x: u81, mask: u81) u64 {
+fn compress(x: u128, mask: u128) u64 {
     assert(x & ~mask == 0);
     const top: u64 = @as(u64, @intCast(x >> 64)) << compression_shift;
     const bot: u64 = @truncate(x);
@@ -79,9 +79,9 @@ fn compress(x: u81, mask: u81) u64 {
     return result;
 }
 
-fn decompress(y: u64, mask: u81) u81 {
-    const bot: u81 = y & mask;
-    const top: u81 = (@as(u81, y >> compression_shift) << 64) & mask;
+fn decompress(y: u64, mask: u128) u128 {
+    const bot: u128 = y & mask;
+    const top: u128 = (@as(u128, y >> compression_shift) << 64) & mask;
     assert(bot & top == 0);
     const result = bot | top;
     assert(result & ~mask == 0);

@@ -138,7 +138,7 @@ fn pextComptime(x: u64, m: u64) usize {
     }
 }
 
-inline fn compressBlockers(bb: u81) u64 {
+inline fn compressBlockers(bb: u128) u64 {
     const top: u64 = @as(u64, @intCast(bb >> 64)) << 1;
     const bot: u64 = @truncate(bb);
     return bot | top;

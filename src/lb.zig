@@ -180,6 +180,10 @@ pub const Move = packed struct(u16) {
         };
     }
 
+    pub fn parse(str: []const u8) !Move {
+        _ = str;
+    }
+
     pub fn from(m: Move) Square {
         assert(!m.drop);
         return Square.make(m.src);

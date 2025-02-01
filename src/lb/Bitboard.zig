@@ -22,14 +22,16 @@
 // +---+---+---+---+---+---+---+---+---+
 //
 
-raw: u81 = 0,
+raw: u128 = 0,
 
-pub inline fn make(raw: u81) Bitboard {
-    return .{ .raw = raw };
+const mask = (@as(u128, 1) << 81) - 1;
+
+pub inline fn make(raw: u128) Bitboard {
+    return .{ .raw = raw & mask };
 }
 
 pub inline fn fromSq(sq: Square) Bitboard {
-    return .{ .raw = @as(u81, 1) << sq.raw };
+    return .{ .raw = @as(u128, 1) << sq.raw };
 }
 
 pub inline fn toSq(bb: Bitboard) Square {
@@ -66,16 +68,16 @@ pub inline fn rankRelative(id: usize, perspective: Color) Bitboard {
 }
 
 pub inline fn set(bb: *Bitboard, sq: Square) void {
-    bb.raw |= @as(u81, 1) << sq.raw;
+    bb.raw |= @as(u128, 1) << sq.raw;
 }
 
 pub inline fn clear(bb: *Bitboard, sq: Square) void {
-    bb.raw &= ~(@as(u81, 1) << sq.raw);
+    bb.raw &= ~(@as(u128, 1) << sq.raw);
 }
 
 pub inline fn put(bb: *Bitboard, sq: Square, value: u1) void {
     bb.clear(sq);
-    bb.raw |= @as(u81, value) << sq.raw;
+    bb.raw |= @as(u128, value) << sq.raw;
 }
 
 pub inline fn get(bb: Bitboard, sq: Square) u1 {
@@ -91,7 +93,7 @@ pub inline fn count(bb: Bitboard) usize {
 }
 
 pub inline fn invert(bb: Bitboard) Bitboard {
-    return .{ .raw = ~bb.raw };
+    return .{ .raw = ~bb.raw & mask };
 }
 
 pub inline fn @"and"(a: Bitboard, b: Bitboard) Bitboard {
@@ -117,19 +119,19 @@ pub inline fn fillFile(bb: Bitboard) Bitboard {
     down |= down >> 36;
     up |= up << 72;
     down |= down >> 72;
-    return .{ .raw = up | down };
+    return .{ .raw = (up | down) & mask };
 }
 
 pub inline fn shift(bb: Bitboard, dir: Direction) Bitboard {
     return switch (dir) {
-        .n => .{ .raw = bb.raw << 9 },
-        .s => .{ .raw = bb.raw >> 9 },
-        .e => .{ .raw = (bb.raw & ~file_1) << 1 },
-        .w => .{ .raw = (bb.raw & ~file_9) >> 1 },
-        .ne => .{ .raw = (bb.raw & ~file_1) << 10 },
-        .nw => .{ .raw = (bb.raw & ~file_9) << 8 },
-        .se => .{ .raw = (bb.raw & ~file_1) >> 8 },
-        .sw => .{ .raw = (bb.raw & ~file_9) >> 10 },
+        .n => .{ .raw = (bb.raw << 9) & mask },
+        .s => .{ .raw = (bb.raw >> 9) & mask },
+        .e => .{ .raw = ((bb.raw & ~file_1) << 1) & mask },
+        .w => .{ .raw = ((bb.raw & ~file_9) >> 1) & mask },
+        .ne => .{ .raw = ((bb.raw & ~file_1) << 10) & mask },
+        .nw => .{ .raw = ((bb.raw & ~file_9) << 8) & mask },
+        .se => .{ .raw = ((bb.raw & ~file_1) >> 8) & mask },
+        .sw => .{ .raw = ((bb.raw & ~file_9) >> 10) & mask },
     };
 }
 
@@ -153,7 +155,7 @@ test shift {
 }
 
 pub inline fn iterate(bb: Bitboard) struct {
-    bits: u81,
+    bits: u128,
     pub fn next(self: *@This()) ?Bitboard {
         if (self.bits == 0) return null;
         const lsb = self.bits & -%self.bits;
@@ -165,7 +167,7 @@ pub inline fn iterate(bb: Bitboard) struct {
 }
 
 pub inline fn iterateSquares(bb: Bitboard) struct {
-    bits: u81,
+    bits: u128,
     pub fn next(self: *@This()) ?Square {
         if (self.bits == 0) return null;
         const lsb = self.bits & -%self.bits;
@@ -199,10 +201,10 @@ pub fn prettyPrint(bb: Bitboard, writer: anytype, prefix: []const u8) !void {
     try writer.flush();
 }
 
-const rank_a: u81 = rank_i << (8 * 9);
-const rank_i: u81 = 0x1FF;
-const file_1: u81 = file_9 << 8;
-const file_9: u81 = 0x001008040201008040201;
+const rank_a: u128 = rank_i << (8 * 9);
+const rank_i: u128 = 0x1FF;
+const file_1: u128 = file_9 << 8;
+const file_9: u128 = 0x001008040201008040201;
 pub const Direction = enum(u3) { n = 0, ne = 1, e = 2, se = 3, s = 4, sw = 5, w = 6, nw = 7 };
 
 const Bitboard = @This();
