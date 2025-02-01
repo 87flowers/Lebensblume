@@ -227,7 +227,7 @@ pub fn format(board: *const Board, comptime _: []const u8, _: std.fmt.FormatOpti
         try op(writer, board.hand_mailbox[@intFromEnum(Color.gote)].lance, 'l');
         try op(writer, board.hand_mailbox[@intFromEnum(Color.gote)].pawn, 'p');
     }
-    try writer.print(" {}", .{(board.ply >> 1) + 1});
+    try writer.print(" {}", .{board.ply + 1});
 }
 
 pub fn parse(str: []const u8) !Board {
@@ -373,7 +373,7 @@ pub fn parseParts(board_str: []const u8, color_str: []const u8, hand_str: []cons
     {
         result.ply = try std.fmt.parseUnsigned(u16, ply_str, 10);
         if (result.ply < 1 or result.ply > 10000) return lb.ParseError.OutOfRange;
-        result.ply = (result.ply - 1) * 2 + @intFromEnum(result.active_color);
+        result.ply -= 1;
     }
 
     // King count validation

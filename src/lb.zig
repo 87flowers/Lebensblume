@@ -178,8 +178,16 @@ pub const Move = packed struct(u16) {
     }
 
     pub fn ptype(m: Move) PieceType {
-        assert(m.drop);
+        assert(m.drop and !m.promo);
         return @enumFromInt(m.src);
+    }
+
+    pub fn format(m: Move, comptime _: []const u8, _: std.fmt.FormatOptions, writer: anytype) !void {
+        if (m.drop) {
+            try writer.print("{}*{}", .{ m.ptype(), m.to });
+        } else {
+            try writer.print("{}{}{}", .{ m.from(), m.to, if (m.promo) "+" else "" });
+        }
     }
 };
 

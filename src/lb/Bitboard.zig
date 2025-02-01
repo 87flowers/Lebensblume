@@ -71,6 +71,10 @@ pub inline fn count(bb: Bitboard) usize {
     return @popCount(bb.raw);
 }
 
+pub inline fn invert(bb: Bitboard) Bitboard {
+    return .{ .raw = ~bb.raw };
+}
+
 pub inline fn @"and"(a: Bitboard, b: Bitboard) Bitboard {
     return .{ .raw = a.raw & b.raw };
 }
@@ -81,6 +85,20 @@ pub inline fn @"or"(a: Bitboard, b: Bitboard) Bitboard {
 
 pub inline fn orWith(bb: *Bitboard, other: Bitboard) void {
     bb.raw |= other.raw;
+}
+
+pub inline fn fillFile(bb: Bitboard) Bitboard {
+    var up = bb.raw;
+    var down = bb.raw;
+    up |= up << 9;
+    down |= down >> 9;
+    up |= up << 18;
+    down |= down >> 18;
+    up |= up << 36;
+    down |= down >> 36;
+    up |= up << 72;
+    down |= down >> 72;
+    return .{ .raw = up | down };
 }
 
 pub inline fn shift(bb: Bitboard, dir: Direction) Bitboard {
