@@ -3,6 +3,7 @@ fn core(board: *lb.Board, depth: usize) usize {
     var result: usize = 0;
     var moves = lb.MoveList{};
     moves.generateMoves(board);
+    if (depth == 1) return moves.moves.len;
     for (moves.moves.slice()) |m| {
         var new_board = board.*;
         new_board.move(m);
@@ -26,9 +27,9 @@ pub fn go(out: anytype, board: *lb.Board, depth: usize) !usize {
         try out.raw("{}: {}\n", .{ m, p });
         try out.flush();
     }
-    const elapsed: f64 = @floatFromInt(timer.read());
+    const elapsed: u64 = timer.read();
     try out.raw("Nodes searched (depth {}): {}\n", .{ depth, result });
-    try out.raw("Search completed in {d:.1}ms\n", .{elapsed / std.time.ns_per_ms});
+    try out.raw("Search completed in {d:.1}ms ({d:.0} nps)\n", .{ @as(f64, @floatFromInt(elapsed)) / std.time.ns_per_ms, result * std.time.ns_per_s / elapsed });
     try out.flush();
 
     return result;

@@ -41,7 +41,7 @@ pub fn move(board: *Board, m: Move) void {
             const dest_ptype = if (m.promo) src.ptype.promote() else src.ptype;
             board.colors[@intFromEnum(board.active_color)].set(m.to);
             board.pieces[dest_ptype.toBitboardIndex()].set(m.to);
-            board.board_mailbox[m.from().raw] = .{ .color = board.active_color, .ptype = dest_ptype };
+            board.board_mailbox[m.to.raw] = .{ .color = board.active_color, .ptype = dest_ptype };
         },
         true => unreachable,
     }
