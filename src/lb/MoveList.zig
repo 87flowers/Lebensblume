@@ -17,7 +17,7 @@ fn generateMovesNoCheckers(self: *MoveList, board: *const Board) void {
 }
 
 fn generateMovesOneChecker(self: *MoveList, board: *const Board) void {
-    const valid_dests = lb.rays.rayToEndInclusive(board.getPieces(board.active_color, .king).toSq(), board.checkers.toSq());
+    const valid_dests = lb.rays.rayBetween(board.getPieces(board.active_color, .king).toSq(), board.checkers.toSq()).@"or"(board.checkers);
     generateNonKingMoves(self, board, valid_dests);
     generateKingMoves(self, board);
     generateDrops(self, board, valid_dests.@"and"(board.checkers.invert()));
