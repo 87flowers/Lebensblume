@@ -37,6 +37,15 @@ pub inline fn toSq(bb: Bitboard) Square {
     return Square.make(@intCast(@ctz(bb.raw)));
 }
 
+pub fn fromSqList(list: []const *const [2]u8) !Bitboard {
+    var result = Bitboard{};
+    for (list) |str| {
+        const sq = try Square.parse(str.*);
+        result.orWith(sq.bitboard());
+    }
+    return result;
+}
+
 pub inline fn set(bb: *Bitboard, sq: Square) void {
     bb.raw |= @as(u81, 1) << sq.raw;
 }

@@ -75,6 +75,12 @@ fn generateCheckers(board: *Board) void {
     board.checkers.orWith(rings_checkers);
 }
 
+test generateCheckers {
+    const board = try Board.parse("b5k1r/1b7/3n1n3/4p4/b3K3r/3sp+s3/3n1n3/9/9 b - 1");
+    const expect = try Bitboard.fromSqList(&.{ "6f", "1e", "5d", "6c", "4c", "8b" });
+    try std.testing.expectEqual(expect, board.checkers);
+}
+
 pub fn prettyPrint(board: *const Board, writer: anytype, language: PrintLanguage) !void {
     const indent = "    ";
     try writer.raw("\n", .{});

@@ -19,6 +19,14 @@ pub const Square = packed struct(u7) {
         return .{ .raw = raw };
     }
 
+    pub fn parse(str: [2]u8) !Square {
+        if (str[0] < '1' or str[0] > '9') return ParseError.InvalidChar;
+        const file = 9 - (str[0] - '0');
+        if (str[1] < 'a' or str[1] > 'i') return ParseError.InvalidChar;
+        const rank = 9 - (str[1] - 'a' + 1);
+        return Square.make(@intCast(rank * 9 + file));
+    }
+
     pub fn bitboard(sq: Square) Bitboard {
         return Bitboard.fromSq(sq);
     }
