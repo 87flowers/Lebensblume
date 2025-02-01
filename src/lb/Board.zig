@@ -1,7 +1,7 @@
 colors: [2]Bitboard,
 pieces: [PieceType.bitboards_count]Bitboard,
 hand: [2]u7,
-board_mailbox: [81]packed struct { color: Color, ptype: PieceType },
+board_mailbox: [81]Place,
 hand_mailbox: [2]Hand,
 active_color: Color = .sente,
 ply: usize = 0,
@@ -20,7 +20,34 @@ pub fn verify(board: *const Board) void {
 }
 
 pub fn move(board: *Board, m: Move) void {
-    _ = .{ board, m };
+    switch (m.drop) {
+        false => {
+            const src = board.board_mailbox[m.from().raw];
+            assert(src.color == board.active_color and src.ptype != .none);
+
+            board.colors[@intFromEnum(board.active_color)].clear(m.from());
+            board.pieces[src.ptype.toBitboardIndex()].clear(m.from());
+            board.board_mailbox[m.from().raw] = Place.empty;
+
+            // Is this a capture?
+            if (board.board_mailbox[m.to.raw] != Place.empty) {
+                const dest = board.board_mailbox[m.to.raw];
+                assert(dest.color != board.active_color and dest.ptype != .none);
+
+                board.colors[@intFromEnum(board.active_color.invert())].clear(m.to);
+                board.pieces[dest.ptype.toBitboardIndex()].clear(m.to);
+            }
+
+            const dest_ptype = if (m.promo) src.ptype.promote() else src.ptype;
+            board.colors[@intFromEnum(board.active_color)].set(m.to);
+            board.pieces[dest_ptype.toBitboardIndex()].set(m.to);
+            board.board_mailbox[m.from().raw] = .{ .color = board.active_color, .ptype = dest_ptype };
+        },
+        true => unreachable,
+    }
+    board.active_color = board.active_color.invert();
+    board.ply += 1;
+    board.precompute();
 }
 
 pub inline fn getColor(board: *const Board, color: Color) Bitboard {
@@ -494,6 +521,13 @@ pub const Hand = packed struct(u32) {
         try op(writer, hand.lance, table, color, .lance);
         try op(writer, hand.pawn, table, color, .pawn);
     }
+};
+
+pub const Place = packed struct(u5) {
+    color: Color,
+    ptype: PieceType,
+
+    const empty: Place = @bitCast(@as(u5, 0));
 };
 
 pub const PrintLanguage = enum { ja, en };
