@@ -157,6 +157,29 @@ pub inline fn iterateSquares(bb: Bitboard) struct {
     return .{ .bits = bb.raw };
 }
 
+pub fn prettyPrint(bb: Bitboard, writer: anytype, prefix: []const u8) !void {
+    try writer.raw("{s}┏━━┯━━┯━━┯━━┯━━┯━━┯━━┯━━┯━━┓\n", .{prefix});
+    for (0..81) |place_index| {
+        const file, const sq = lb.displayIndexToSquare(place_index);
+        if (file == 0) {
+            try writer.raw("{s}┃", .{prefix});
+        } else {
+            try writer.raw("│", .{});
+        }
+        try writer.raw("{s}", .{switch (bb.get(sq)) {
+            0 => "０",
+            1 => "１",
+        }});
+        if (file == 8) {
+            try writer.raw("┃\n", .{});
+            if (place_index != 80) try writer.raw("{s}┠──┼──┼──┼──┼──┼──┼──┼──┼──┨\n", .{prefix});
+        }
+    }
+    try writer.raw("{s}┗━━┷━━┷━━┷━━┷━━┷━━┷━━┷━━┷━━┛\n", .{prefix});
+    try writer.raw("{s}hex: 0x{x:021}\n", .{ prefix, bb.raw });
+    try writer.flush();
+}
+
 const rank_a: u81 = rank_i << (8 * 9);
 const rank_i: u81 = 0x1FF;
 const file_1: u81 = file_9 << 8;

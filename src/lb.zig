@@ -1,6 +1,7 @@
 pub const attacks = @import("lb/attacks.zig");
 pub const bit_util = @import("lb/bit_util.zig");
 pub const perft = @import("lb/perft.zig");
+pub const rays = @import("lb/rays.zig");
 pub const Bitboard = @import("lb/Bitboard.zig");
 pub const Board = @import("lb/Board.zig");
 pub const Game = @import("lb/Game.zig");
@@ -190,6 +191,12 @@ pub const Move = packed struct(u16) {
         }
     }
 };
+
+pub fn displayIndexToSquare(index: usize) struct { usize, Square } {
+    const file = index % 9;
+    const sq = Square.make(@intCast(72 - (index - file) + file));
+    return .{ file, sq };
+}
 
 const std = @import("std");
 const assert = std.debug.assert;

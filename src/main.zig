@@ -50,6 +50,8 @@ const Usi = struct {
             try g.board.prettyPrint(&self.out, .ja);
         } else if (std.mem.eql(u8, command, "de")) {
             try g.board.prettyPrint(&self.out, .en);
+        } else if (std.mem.eql(u8, command, "danger")) {
+            try g.board.danger.prettyPrint(&self.out, "    ");
         } else {
             try self.out.protocolError(command, "unknown command", .{});
         }

@@ -23,20 +23,24 @@ pub fn move(board: *Board, m: Move) void {
     _ = .{ board, m };
 }
 
-pub fn getColor(board: *const Board, color: Color) Bitboard {
+pub inline fn getColor(board: *const Board, color: Color) Bitboard {
     return board.colors[@intFromEnum(color)];
 }
 
-pub fn getOccupied(board: *const Board) Bitboard {
+pub inline fn getOccupied(board: *const Board) Bitboard {
     return Bitboard.@"or"(board.colors[0], board.colors[1]);
 }
 
-pub fn getPieces(board: *const Board, color: Color, ptype: PieceType) Bitboard {
+pub inline fn getPieces(board: *const Board, color: Color, ptype: PieceType) Bitboard {
     return Bitboard.@"and"(board.colors[@intFromEnum(color)], board.pieces[ptype.toBitboardIndex()]);
 }
 
-pub fn getPromoteds(board: *const Board, color: Color) Bitboard {
+pub inline fn getPromoteds(board: *const Board, color: Color) Bitboard {
     return Bitboard.@"and"(board.colors[@intFromEnum(color)], board.pieces[board.pieces.len - 1]);
+}
+
+pub inline fn isInCheck(board: *const Board) bool {
+    return !board.checkers.empty();
 }
 
 fn precompute(board: *Board) void {
@@ -145,7 +149,7 @@ pub fn prettyPrint(board: *const Board, writer: anytype, language: PrintLanguage
     try writer.raw(indent ++ " ９ ８ ７ ６ ５ ４ ３ ２ １ \n", .{});
     try writer.raw(indent ++ "┏━━┯━━┯━━┯━━┯━━┯━━┯━━┯━━┯━━┓\n", .{});
     for (0..81) |place_index| {
-        const file, const sq = displayIndexToSquare(place_index);
+        const file, const sq = lb.displayIndexToSquare(place_index);
         try writer.raw("{s}", .{if (file == 0) indent ++ "┃" else "│"});
         const place = board.board_mailbox[sq.raw];
         const is_red = place.ptype.promoted() and language == .ja;
@@ -198,7 +202,7 @@ pub fn prettyPrint(board: *const Board, writer: anytype, language: PrintLanguage
 pub fn format(board: *const Board, comptime _: []const u8, _: std.fmt.FormatOptions, writer: anytype) !void {
     var blanks: usize = 0;
     for (0..81) |place_index| {
-        const file, const sq = displayIndexToSquare(place_index);
+        const file, const sq = lb.displayIndexToSquare(place_index);
         const place = board.board_mailbox[sq.raw];
         if (place.ptype == .none) {
             blanks += 1;
@@ -291,7 +295,7 @@ pub fn parseParts(board_str: []const u8, color_str: []const u8, hand_str: []cons
         var place_index: usize = 0;
         var i: usize = 0;
         board_loop: while (place_index < 81 and i < board_str.len) : (i += 1) {
-            const file, const sq = displayIndexToSquare(place_index);
+            const file, const sq = lb.displayIndexToSquare(place_index);
             const ch = board_str[i];
             switch (ch) {
                 '/' => {
@@ -401,12 +405,6 @@ pub fn parseParts(board_str: []const u8, color_str: []const u8, hand_str: []cons
     result.precompute();
 
     return result;
-}
-
-fn displayIndexToSquare(index: usize) struct { usize, Square } {
-    const file = index % 9;
-    const sq = Square.make(@intCast(72 - (index - file) + file));
-    return .{ file, sq };
 }
 
 fn placeBoard(self: *Board, color: Color, ptype: PieceType, sq: Square) void {
