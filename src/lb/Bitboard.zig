@@ -125,13 +125,13 @@ pub inline fn fillFile(bb: Bitboard) Bitboard {
 pub inline fn shift(bb: Bitboard, dir: Direction) Bitboard {
     return switch (dir) {
         .n => .{ .raw = (bb.raw << 9) & mask },
-        .s => .{ .raw = (bb.raw >> 9) & mask },
+        .s => .{ .raw = (bb.raw >> 9) },
         .e => .{ .raw = ((bb.raw & ~file_1) << 1) & mask },
-        .w => .{ .raw = ((bb.raw & ~file_9) >> 1) & mask },
+        .w => .{ .raw = ((bb.raw & ~file_9) >> 1) },
         .ne => .{ .raw = ((bb.raw & ~file_1) << 10) & mask },
         .nw => .{ .raw = ((bb.raw & ~file_9) << 8) & mask },
-        .se => .{ .raw = ((bb.raw & ~file_1) >> 8) & mask },
-        .sw => .{ .raw = ((bb.raw & ~file_9) >> 10) & mask },
+        .se => .{ .raw = ((bb.raw & ~file_1) >> 8) },
+        .sw => .{ .raw = ((bb.raw & ~file_9) >> 10) },
     };
 }
 

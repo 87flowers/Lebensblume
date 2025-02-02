@@ -35,7 +35,14 @@ fn generateDrops(self: *MoveList, board: *const Board, valid_dests: Bitboard) vo
         hand_ptypes &= hand_ptypes - 1;
         const valid_normal_dests = validNormalDests(board.active_color, .pawn);
         const nifu_restriction = board.getPieces(board.active_color, .pawn).fillFile().invert();
-        self.splatDrops(.pawn, valid_dests.@"and"(valid_normal_dests).@"and"(nifu_restriction));
+        const enemy_king = board.getPieces(board.active_color.invert(), .king);
+        const potential_uchifuzume = enemy_king.shiftRelative(.n, board.active_color.invert());
+
+        var drops = valid_dests.@"and"(valid_normal_dests).@"and"(nifu_restriction);
+        if (!drops.@"and"(potential_uchifuzume).empty() and isUchifuzume(board, enemy_king.toSq(), potential_uchifuzume)) {
+            drops = drops.@"and"(potential_uchifuzume.invert());
+        }
+        self.splatDrops(.pawn, drops);
     }
 
     // All other drops
@@ -44,6 +51,16 @@ fn generateDrops(self: *MoveList, board: *const Board, valid_dests: Bitboard) vo
         const valid_normal_dests = validNormalDests(board.active_color, ptype);
         self.splatDrops(ptype, valid_dests.@"and"(valid_normal_dests));
     }
+}
+
+fn isUchifuzume(board: *const Board, enemy_king: Square, drop_bb: Bitboard) bool {
+    const pawn_attackers = board.getAllNonKingAttackers(drop_bb.toSq(), board.active_color.invert());
+    const nonpinned_pawn_attackers = pawn_attackers.@"and"(board.getPinned(board.active_color.invert()).invert());
+    if (!nonpinned_pawn_attackers.empty()) return false;
+
+    const ring = lb.attacks.king(enemy_king);
+    const attack_map = board.getAttackMap(board.active_color).@"or"(board.getColor(board.active_color.invert()));
+    return attack_map.@"and"(ring).raw == ring.raw;
 }
 
 fn generateKingMoves(self: *MoveList, board: *const Board) void {
