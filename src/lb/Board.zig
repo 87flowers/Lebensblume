@@ -75,6 +75,14 @@ pub inline fn getPieces(board: *const Board, color: Color, ptype: PieceType) Bit
     return Bitboard.@"and"(board.colors[@intFromEnum(color)], board.pieces[ptype.toBitboardIndex()]);
 }
 
+pub inline fn getKing(board: *const Board, color: Color) Bitboard {
+    return board.getPieces(color, .king);
+}
+
+pub inline fn getKingSq(board: *const Board, color: Color) Square {
+    return board.getPieces(color, .king).toSq();
+}
+
 pub inline fn getPromoteds(board: *const Board, color: Color) Bitboard {
     return Bitboard.@"and"(board.colors[@intFromEnum(color)], board.pieces[board.pieces.len - 1]);
 }

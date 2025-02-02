@@ -17,7 +17,7 @@ fn generateMovesNoCheckers(self: *MoveList, board: *const Board) void {
 }
 
 fn generateMovesOneChecker(self: *MoveList, board: *const Board) void {
-    const valid_dests = lb.rays.rayBetween(board.getPieces(board.active_color, .king).toSq(), board.checkers.toSq()).@"or"(board.checkers);
+    const valid_dests = lb.rays.rayBetween(board.getKingSq(board.active_color), board.checkers.toSq()).@"or"(board.checkers);
     generateNonKingMoves(self, board, valid_dests);
     generateKingMoves(self, board);
     generateDrops(self, board, valid_dests.@"and"(board.checkers.invert()));
@@ -35,7 +35,7 @@ fn generateDrops(self: *MoveList, board: *const Board, valid_dests: Bitboard) vo
         hand_ptypes &= hand_ptypes - 1;
         const valid_normal_dests = validNormalDests(board.active_color, .pawn);
         const nifu_restriction = board.getPieces(board.active_color, .pawn).fillFile().invert();
-        const enemy_king = board.getPieces(board.active_color.invert(), .king);
+        const enemy_king = board.getKing(board.active_color.invert());
         const potential_uchifuzume = enemy_king.shiftRelative(.n, board.active_color.invert());
 
         var drops = valid_dests.@"and"(valid_normal_dests).@"and"(nifu_restriction);
@@ -64,7 +64,7 @@ fn isUchifuzume(board: *const Board, enemy_king: Square, drop_bb: Bitboard) bool
 }
 
 fn generateKingMoves(self: *MoveList, board: *const Board) void {
-    const king_sq = board.getPieces(board.active_color, .king).toSq();
+    const king_sq = board.getKingSq(board.active_color);
     const king_moves = lb.attacks.king(king_sq).@"and"(board.danger.invert()).@"and"(board.getColor(board.active_color).invert());
     self.splatNormalMoves(king_sq, king_moves);
 }
@@ -73,7 +73,7 @@ fn generateNonKingMoves(self: *MoveList, board: *const Board, valid_dests: Bitbo
     const color = board.active_color;
     const occupied = board.getOccupied();
     const pinned = board.pinned;
-    const king_sq = board.getPieces(board.active_color, .king).toSq();
+    const king_sq = board.getKingSq(board.active_color);
 
     self.generatePieceMoves(board, board.getPieces(color, .rook), king_sq, pinned, valid_dests, occupied, .rook, struct {
         fn op(from: Square, _: Color, blockers: Bitboard) Bitboard {
