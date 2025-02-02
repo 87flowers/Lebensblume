@@ -63,6 +63,25 @@ fn isUchifuzume(board: *const Board, enemy_king: Square, drop_bb: Bitboard) bool
     return attack_map.@"and"(ring).raw == ring.raw;
 }
 
+test isUchifuzume {
+    const cases = [_]struct { []const u8, bool, []const u8 } {
+        .{ "9/9/7gp/7pk/9/7G1/9/PPPPPPPP1/K8 b P 1", true, "P*1e" },
+        .{ "9/9/7pp/7sk/9/7G1/9/PPPPPPPP1/K8 b P 1", false, "P*1e" },
+        .{ "9/9/8p/6K1k/9/7G1/9/PPPPPPPP1/9 b P 1", true, "P*1e" },
+        .{ "9/9/8p/6K1k/9/9/9/PPPPPPPP1/9 b P 1", false, "P*1e" },
+        .{ "9/9/7gp/1R5gk/9/7G1/9/PPPPPPPP1/K8 b P 1", true, "P*1e" },
+        .{ "9/9/7gp/7gk/9/7G1/9/PPPPPPPP1/K8 b P 1", false, "P*1e" },
+    };
+    for (cases) |case| {
+        const sfen, const is_uchifuzume, const move = case;
+        const board = try Board.parse(sfen);
+        var moves = MoveList{};
+        moves.generateMoves(&board);
+        const has_move = std.mem.count(Move, moves.moves.slice(), &.{try Move.parse(move)});
+        try std.testing.expectEqual(!is_uchifuzume, has_move > 0);
+    }
+}
+
 fn generateKingMoves(self: *MoveList, board: *const Board) void {
     const king_sq = board.getKingSq(board.active_color);
     const king_moves = lb.attacks.king(king_sq).@"and"(board.danger.invert()).@"and"(board.getColor(board.active_color).invert());
