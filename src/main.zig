@@ -1,3 +1,5 @@
+const lb_version = "0.0";
+
 var g = lb.Game{};
 
 pub fn main() !void {
@@ -40,12 +42,25 @@ const Usi = struct {
     pub fn usiParseCommand(self: *Usi, input_line: []const u8) !void {
         var it = std.mem.tokenizeAny(u8, input_line, " \t\r\n");
         const command = it.next() orelse return;
-        if (std.mem.eql(u8, command, "position")) {
+        if (std.mem.eql(u8, command, "go")) {
+            try self.usiParseGo(&it);
+        } else if (std.mem.eql(u8, command, "position")) {
             try self.usiParsePosition(&it);
-        } else if (std.mem.eql(u8, command, "perft")) {
-            try self.usiParsePerft(&it);
+        } else if (std.mem.eql(u8, command, "usinewgame")) {
+            // Do nothing
+        } else if (std.mem.eql(u8, command, "isready")) {
+            try self.usiGetReady();
+        } else if (std.mem.eql(u8, command, "usi")) {
+            try self.out.raw(
+                \\id name Lebensblume {s}
+                \\id author 87 (87flowers.com)
+                \\usiok
+                \\
+            , .{lb_version});
         } else if (std.mem.eql(u8, command, "quit")) {
             std.process.exit(0);
+        } else if (std.mem.eql(u8, command, "perft")) {
+            try self.usiParsePerft(&it);
         } else if (std.mem.eql(u8, command, "d")) {
             try g.board.prettyPrint(&self.out, .ja);
         } else if (std.mem.eql(u8, command, "de")) {
@@ -55,6 +70,38 @@ const Usi = struct {
         } else {
             try self.out.protocolError(command, "unknown command", .{});
         }
+    }
+
+    fn usiParseGo(self: *Usi, it: *Iterator) !void {
+        var tc = TimeControl{};
+        while (it.next()) |part| {
+            if (std.mem.eql(u8, part, "wtime")) {
+                const str = it.next() orelse break;
+                tc.wtime = std.fmt.parseUnsigned(u64, str, 10) catch continue;
+            } else if (std.mem.eql(u8, part, "btime")) {
+                const str = it.next() orelse break;
+                tc.btime = std.fmt.parseUnsigned(u64, str, 10) catch continue;
+            } else if (std.mem.eql(u8, part, "winc")) {
+                const str = it.next() orelse break;
+                tc.winc = std.fmt.parseUnsigned(u64, str, 10) catch continue;
+            } else if (std.mem.eql(u8, part, "binc")) {
+                const str = it.next() orelse break;
+                tc.binc = std.fmt.parseUnsigned(u64, str, 10) catch continue;
+            } else if (std.mem.eql(u8, part, "byoyomi")) {
+                const str = it.next() orelse break;
+                tc.byoyomi = std.fmt.parseUnsigned(u64, str, 10) catch continue;
+            } else {
+                try self.out.unrecognisedToken("go", part);
+            }
+        }
+        try self.go(tc);
+    }
+
+    fn go(self: *Usi, tc: TimeControl) !void {
+        _ = tc;
+        var pv = lb.line.Line{};
+        _ = try lb.search.go(&self.out, &g, &pv);
+        try self.out.bestmove(if (pv.len > 0) pv.pv[0] else null);
     }
 
     fn usiParsePosition(self: *Usi, it: *Iterator) !void {
@@ -85,6 +132,10 @@ const Usi = struct {
             const m = lb.Move.parse(move_str) catch return self.out.illegalMoveString(move_str);
             g.board.move(m);
         }
+    }
+
+    fn usiGetReady(self: *Usi) !void {
+        try self.out.readyok();
     }
 
     fn usiParsePerft(self: *Usi, it: *Iterator) !void {
@@ -138,7 +189,7 @@ const UsiOutput = struct {
         try self.flush();
     }
 
-    pub inline fn pong(self: *UsiOutput) !void {
+    pub inline fn readyok(self: *UsiOutput) !void {
         try self.raw("readyok\n", .{});
         try self.flush();
     }
@@ -160,7 +211,7 @@ const UsiOutput = struct {
         };
 
         const elapsed = ctrl.timer.read();
-        const nps = ctrl.nodes * std.time.ns_per_s / elapsed;
+        const nps = ctrl.nodes * std.time.ns_per_s / @max(1, elapsed);
         try self.raw("info depth {} ", .{depth});
         try self.printEval(score);
         try self.raw(" time {} nodes {} nps {} pv {}" ++ trailing, .{ elapsed / std.time.ns_per_ms, ctrl.nodes, nps, pv });
@@ -176,6 +227,15 @@ const UsiOutput = struct {
     }
 };
 
+const TimeControl = struct {
+    wtime: ?u64 = null,
+    btime: ?u64 = null,
+    winc: ?u64 = null,
+    binc: ?u64 = null,
+    byoyomi: ?u64 = null,
+};
+
 const std = @import("std");
+const assert = std.debug.assert;
 const lb = @import("lb.zig");
 const util = @import("util.zig");

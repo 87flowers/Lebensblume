@@ -155,7 +155,6 @@ pub fn getPinned(board: *const Board, king_color: Color) Bitboard {
     return result;
 }
 
-
 pub fn getAttackMap(board: *const Board, attacker_color: Color) Bitboard {
     const occupied = board.getOccupied().@"and"(board.getPieces(attacker_color.invert(), .king).invert());
 

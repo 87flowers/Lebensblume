@@ -1,7 +1,9 @@
 pub const attacks = @import("lb/attacks.zig");
 pub const bit_util = @import("lb/bit_util.zig");
+pub const line = @import("lb/line.zig");
 pub const perft = @import("lb/perft.zig");
 pub const rays = @import("lb/rays.zig");
+pub const search = @import("lb/search.zig");
 pub const Bitboard = @import("lb/Bitboard.zig");
 pub const Board = @import("lb/Board.zig");
 pub const Game = @import("lb/Game.zig");
