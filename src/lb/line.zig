@@ -1,0 +1,75 @@
+pub const Null = struct {
+    pub inline fn new(_: *const Null) Null {
+        return .{};
+    }
+    pub inline fn copyFrom(_: *const Null, _: *const Null) void {}
+    pub inline fn newChild(_: *const Null) Null {
+        return .{};
+    }
+    pub inline fn writeEmpty(_: *const Null) void {}
+    pub inline fn write(_: *const Null, _: Move, _: *const Null) void {}
+};
+
+pub const Line = struct {
+    pv: [lb.max_search_ply]Move = undefined,
+    len: usize = 0,
+
+    pub inline fn new(_: *const Line) Line {
+        return .{};
+    }
+
+    pub fn copyFrom(self: *Line, from: *const Line) void {
+        self.len = from.len;
+        @memcpy(self.pv[0..from.len], from.pv[0..from.len]);
+    }
+
+    pub fn newChild(_: *Line) Line {
+        return .{};
+    }
+
+    pub fn writeEmpty(self: *Line) void {
+        self.len = 0;
+    }
+
+    pub fn write(self: *Line, m: Move, rest: *const Line) void {
+        self.pv[0] = m;
+        @memcpy(self.pv[1 .. rest.len + 1], rest.pv[0..rest.len]);
+        self.len = rest.len + 1;
+    }
+
+    pub fn format(self: *const Line, comptime _: []const u8, _: std.fmt.FormatOptions, writer: anytype) !void {
+        for (self.pv[0..self.len]) |m| try writer.print("{} ", .{m});
+    }
+};
+
+pub const RootMove = struct {
+    move: ?Move = null,
+
+    pub inline fn new(_: *const RootMove) RootMove {
+        return .{};
+    }
+
+    pub fn copyFrom(self: *RootMove, from: *const RootMove) void {
+        self.move = from.move;
+    }
+
+    pub fn newChild(_: *RootMove) Null {
+        return Null{};
+    }
+
+    pub inline fn writeEmpty(self: *RootMove) void {
+        self.move = null;
+    }
+
+    pub inline fn write(self: *RootMove, m: Move, _: *const Null) void {
+        self.move = m;
+    }
+
+    pub fn format(self: RootMove, comptime _: []const u8, _: std.fmt.FormatOptions, writer: anytype) !void {
+        try writer.print("{?}", .{self.move});
+    }
+};
+
+const std = @import("std");
+const lb = @import("../lb.zig");
+const Move = lb.Move;

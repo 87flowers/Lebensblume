@@ -57,6 +57,8 @@ const Usi = struct {
                 \\usiok
                 \\
             , .{lb_version});
+        } else if (std.mem.eql(u8, command, "ping")) {
+            try self.out.pong();
         } else if (std.mem.eql(u8, command, "quit")) {
             std.process.exit(0);
         } else if (std.mem.eql(u8, command, "perft")) {
@@ -186,6 +188,11 @@ const UsiOutput = struct {
 
     pub fn illegalMove(self: *UsiOutput, move: lb.Move) !void {
         try self.raw("error (illegal move): {}\n", .{move});
+        try self.flush();
+    }
+
+    pub inline fn pong(self: *UsiOutput) !void {
+        try self.raw("pong\n", .{});
         try self.flush();
     }
 

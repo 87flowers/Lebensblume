@@ -1,4 +1,5 @@
 board: lb.Board = lb.Board.defaultBoard(),
+rand: std.Random.DefaultPrng = std.Random.DefaultPrng.init(42),
 
 pub fn setPositionDefault(self: *Game) void {
     self.board = lb.Board.defaultBoard();
@@ -9,4 +10,5 @@ pub fn setPosition(self: *Game, board: lb.Board) void {
 }
 
 const Game = @This();
+const std = @import("std");
 const lb = @import("../lb.zig");
