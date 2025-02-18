@@ -37,7 +37,7 @@ pub fn Control(comptime config: struct {
 
         /// Raises SearchError.EarlyTermination if we should terminate the search
         pub fn checkHardTermination(self: *@This()) SearchError!void {
-            if (config.time and self.last_time_check + 10 < self.nodes) {
+            if (config.time and self.last_time_check + 1000 < self.nodes) {
                 if (self.time_limit.hard <= self.timer.read()) {
                     @branchHint(.unlikely);
                     return SearchError.EarlyTermination;

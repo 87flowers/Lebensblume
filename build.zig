@@ -4,6 +4,7 @@ pub fn build(b: *std.Build) void {
 
     const lebensblume_exe = add(b, target, optimize, "run", "Run shogi engine", "lebensblume", "src/main.zig");
     _ = add(b, target, optimize, "generate-sliders", "Generate slider tables", "lb-generate-sliders", "src/generate_sliders.zig");
+    _ = add(b, target, optimize, "generate-zhash", "Generate zhash tables", "lb-generate-zhash", "src/generate_zhash.zig");
 
     addTests(b);
 

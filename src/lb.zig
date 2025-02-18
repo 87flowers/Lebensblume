@@ -4,6 +4,7 @@ pub const line = @import("lb/line.zig");
 pub const perft = @import("lb/perft.zig");
 pub const rays = @import("lb/rays.zig");
 pub const search = @import("lb/search.zig");
+pub const zhash = @import("lb/zhash.zig");
 pub const Bitboard = @import("lb/Bitboard.zig");
 pub const Board = @import("lb/Board.zig");
 pub const Game = @import("lb/Game.zig");
@@ -14,6 +15,7 @@ pub const max_legal_moves = 600;
 pub const max_search_ply = 128;
 
 pub const Score = i32;
+pub const Hash = zhash.Hash;
 
 pub const Square = packed struct(u7) {
     raw: u7,
