@@ -98,9 +98,18 @@ const Usi = struct {
     }
 
     fn go(self: *Usi, tc: TimeControl) !void {
-        _ = tc;
+        const time_margin = 100 * std.time.ns_per_ms;
+        const time_remaining: u64 = switch (g.board.active_color) {
+            .sente => tc.btime orelse 0,
+            .gote => tc.wtime orelse 0,
+        } * std.time.ns_per_ms;
+        const safe_time_remaining = if (time_remaining <= time_margin) 0 else time_remaining - time_margin;
+        var ctrl = lb.search.TimeControl.init(.{
+            .soft_time = safe_time_remaining / 40,
+            .hard_time = safe_time_remaining / 4,
+        });
         var pv = lb.line.Line{};
-        _ = try lb.search.go(&self.out, &g, &pv);
+        _ = try lb.search.go(&self.out, &g, &ctrl, &pv);
         try self.out.bestmove(if (pv.len > 0) pv.pv[0] else null);
     }
 
@@ -224,13 +233,18 @@ const UsiOutput = struct {
     }
 
     inline fn printEval(self: *UsiOutput, score: lb.Score) !void {
-        if (lb.eval.distanceToMate(score)) |md| {
+        if (distanceToMate(score)) |md| {
             try self.raw("score mate {}", .{md});
         } else {
             try self.raw("score cp {}", .{score});
         }
     }
 };
+
+fn distanceToMate(_: lb.Score) ?usize {
+    // TODO
+    return null;
+}
 
 const TimeControl = struct {
     wtime: ?u64 = null,

@@ -1,4 +1,3 @@
-
 // Position is from first random mover game:
 // 3g3f 3c3d 6i6h 2b3c 5i4h 5a4b 4g4f 3d3e 3f3e 6c6d 7g7f 4a5a 8h6f 3c6f 8g8f B*7g 4i3h 7g8h 4h4g 4b3c 6g6f 5a4b B*1d
 // 2c2d 2g2f 3a3b 1d2c+ 3b2c 7i8h 3c2b B*8g B*1h 1i1h 4b5b 8g7h 8b7b B*8g 2a3c 3h2g 2c1b 7h6g 5b6c 3e3d 1c1d 5g5f 2d2e
