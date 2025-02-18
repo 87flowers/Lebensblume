@@ -9,7 +9,7 @@ pub const Board = @import("lb/Board.zig");
 pub const Game = @import("lb/Game.zig");
 pub const MoveList = @import("lb/MoveList.zig");
 
-pub const max_game_ply = 1024;
+pub const max_game_ply = 2048;
 pub const max_legal_moves = 600;
 pub const max_search_ply = 64;
 

@@ -1,5 +1,3 @@
-const lb_version = "0.0";
-
 var g = lb.Game{};
 
 pub fn main() !void {
@@ -241,6 +239,8 @@ const TimeControl = struct {
     binc: ?u64 = null,
     byoyomi: ?u64 = null,
 };
+
+const lb_version = std.mem.trim(u8, @embedFile("lb_version"), " \t\n");
 
 const std = @import("std");
 const assert = std.debug.assert;
