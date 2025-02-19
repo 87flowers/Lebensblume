@@ -115,10 +115,10 @@ fn eval(board: *Board) lb.Score {
     result -= @as(lb.Score, board.hand_mailbox[1].lance) * 300;
     result += @as(lb.Score, board.hand_mailbox[0].knight) * 400;
     result -= @as(lb.Score, board.hand_mailbox[1].knight) * 400;
-    result += @as(lb.Score, board.hand_mailbox[0].silver) * 400;
-    result -= @as(lb.Score, board.hand_mailbox[1].silver) * 400;
-    result += @as(lb.Score, board.hand_mailbox[0].gold) * 500;
-    result -= @as(lb.Score, board.hand_mailbox[1].gold) * 500;
+    result += @as(lb.Score, board.hand_mailbox[0].silver) * 500;
+    result -= @as(lb.Score, board.hand_mailbox[1].silver) * 500;
+    result += @as(lb.Score, board.hand_mailbox[0].gold) * 600;
+    result -= @as(lb.Score, board.hand_mailbox[1].gold) * 600;
 
     return switch (board.active_color) {
         .sente => result,
