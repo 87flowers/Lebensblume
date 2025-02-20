@@ -1,5 +1,22 @@
 moves: Moves = Moves.init(0) catch unreachable,
 
+pub fn sortInOrder(self: *MoveList, order: []i32) void {
+    const Context = struct {
+        ml: *MoveList,
+        order: []i32,
+
+        pub fn lessThan(ctx: @This(), a: usize, b: usize) bool {
+            return ctx.order[a] > ctx.order[b];
+        }
+
+        pub fn swap(ctx: @This(), a: usize, b: usize) void {
+            std.mem.swap(Move, &ctx.ml.moves.slice()[a], &ctx.ml.moves.slice()[b]);
+            std.mem.swap(i32, &ctx.order[a], &ctx.order[b]);
+        }
+    };
+    std.sort.heapContext(0, self.moves.len, Context{ .ml = self, .order = order });
+}
+
 pub fn generateMoves(self: *MoveList, board: *const Board) void {
     switch (board.checkers.count()) {
         0 => generateMovesNoCheckers(self, board),

@@ -5,6 +5,8 @@ pub fn main() !void {
     defer _ = gpa.deinit();
     const allocator = gpa.allocator();
 
+    g.tt = try lb.TT.init(allocator);
+    defer g.tt.deinit();
     g.reset();
 
     var usi = Usi{ .out = UsiOutput.init(std.io.bufferedWriter(std.io.getStdOut().writer())) };

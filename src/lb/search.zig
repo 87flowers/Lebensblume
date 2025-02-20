@@ -87,8 +87,8 @@ fn forDepth(game: *Game, ctrl: anytype, pv: anytype, depth: i32, prev_score: i32
     return try search(game, ctrl, pv, min_window, max_window, 0, depth);
 }
 
-fn eval(board: *const Board) lb.Score {
-    const piece_values = [_]lb.Score{
+fn eval(board: *const Board) Score {
+    const piece_values = [_]Score{
         100,
         800,
         1000,
@@ -103,28 +103,28 @@ fn eval(board: *const Board) lb.Score {
         600,
     };
 
-    var result: lb.Score = 0;
+    var result: Score = 0;
     for (piece_values, board.pieces) |value, bb| {
         const sente_count = Bitboard.@"and"(bb, board.getColor(.sente)).count();
         const gote_count = Bitboard.@"and"(bb, board.getColor(.sente)).count();
-        result += @as(lb.Score, @intCast(sente_count)) * value;
-        result -= @as(lb.Score, @intCast(gote_count)) * value;
+        result += @as(Score, @intCast(sente_count)) * value;
+        result -= @as(Score, @intCast(gote_count)) * value;
     }
 
-    result += @as(lb.Score, board.hand_mailbox[0].pawn) * 100;
-    result -= @as(lb.Score, board.hand_mailbox[1].pawn) * 100;
-    result += @as(lb.Score, board.hand_mailbox[0].bishop) * 800;
-    result -= @as(lb.Score, board.hand_mailbox[1].bishop) * 800;
-    result += @as(lb.Score, board.hand_mailbox[0].rook) * 1000;
-    result -= @as(lb.Score, board.hand_mailbox[1].rook) * 1000;
-    result += @as(lb.Score, board.hand_mailbox[0].lance) * 300;
-    result -= @as(lb.Score, board.hand_mailbox[1].lance) * 300;
-    result += @as(lb.Score, board.hand_mailbox[0].knight) * 400;
-    result -= @as(lb.Score, board.hand_mailbox[1].knight) * 400;
-    result += @as(lb.Score, board.hand_mailbox[0].silver) * 500;
-    result -= @as(lb.Score, board.hand_mailbox[1].silver) * 500;
-    result += @as(lb.Score, board.hand_mailbox[0].gold) * 600;
-    result -= @as(lb.Score, board.hand_mailbox[1].gold) * 600;
+    result += @as(Score, board.hand_mailbox[0].pawn) * 100;
+    result -= @as(Score, board.hand_mailbox[1].pawn) * 100;
+    result += @as(Score, board.hand_mailbox[0].bishop) * 800;
+    result -= @as(Score, board.hand_mailbox[1].bishop) * 800;
+    result += @as(Score, board.hand_mailbox[0].rook) * 1000;
+    result -= @as(Score, board.hand_mailbox[1].rook) * 1000;
+    result += @as(Score, board.hand_mailbox[0].lance) * 300;
+    result -= @as(Score, board.hand_mailbox[1].lance) * 300;
+    result += @as(Score, board.hand_mailbox[0].knight) * 400;
+    result -= @as(Score, board.hand_mailbox[1].knight) * 400;
+    result += @as(Score, board.hand_mailbox[0].silver) * 500;
+    result -= @as(Score, board.hand_mailbox[1].silver) * 500;
+    result += @as(Score, board.hand_mailbox[0].gold) * 600;
+    result -= @as(Score, board.hand_mailbox[1].gold) * 600;
 
     return switch (board.active_color) {
         .sente => result,
@@ -132,7 +132,7 @@ fn eval(board: *const Board) lb.Score {
     };
 }
 
-fn search(game: *Game, ctrl: anytype, pv: anytype, alpha_orig: i32, beta: i32, ply: u32, depth: i32) SearchError!lb.Score {
+fn search(game: *Game, ctrl: anytype, pv: anytype, alpha_orig: i32, beta: i32, ply: u32, depth: i32) SearchError!Score {
     var alpha = alpha_orig;
 
     if (depth <= 0) return eval(game.board()); // TODO: return eval
@@ -140,12 +140,16 @@ fn search(game: *Game, ctrl: anytype, pv: anytype, alpha_orig: i32, beta: i32, p
 
     try ctrl.checkHardTermination();
 
-    var best_score: lb.Score = std.math.minInt(lb.Score);
+    var best_move = Move.none;
+    var best_score: Score = std.math.minInt(Score);
+
+    const tte = game.ttLoad();
 
     var moves = MoveList{};
     moves.generateMoves(game.board());
+    game.sortMoves(&moves, tte.move);
 
-    if (moves.moves.len == 0) return -std.math.maxInt(lb.Score);
+    if (moves.moves.len == 0) return -std.math.maxInt(Score);
 
     for (moves.moves.slice()) |m| {
         game.move(m);
@@ -161,6 +165,7 @@ fn search(game: *Game, ctrl: anytype, pv: anytype, alpha_orig: i32, beta: i32, p
 
         if (child_score > best_score) {
             best_score = child_score;
+            best_move = m;
             if (child_score > alpha) {
                 alpha = child_score;
                 pv.write(m, &child_pv);
@@ -168,6 +173,18 @@ fn search(game: *Game, ctrl: anytype, pv: anytype, alpha_orig: i32, beta: i32, p
             }
         }
     }
+
+    game.ttStore(.{
+        .depth = @intCast(depth),
+        .best_move = best_move,
+        .bound = if (best_score >= beta)
+            .lower
+        else if (best_score <= alpha_orig)
+            .upper
+        else
+            .exact,
+        .score = best_score,
+    });
 
     return best_score;
 }
@@ -180,4 +197,6 @@ const lb = @import("../lb.zig");
 const Bitboard = lb.Bitboard;
 const Board = lb.Board;
 const Game = lb.Game;
+const Move = lb.Move;
 const MoveList = lb.MoveList;
+const Score = lb.Score;

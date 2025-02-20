@@ -1,9 +1,11 @@
 board_stack: Stack(Board),
 hash_stack: Stack(Hash),
 search_stack: Stack(SS),
+tt: TT,
 
 pub fn reset(game: *Game) void {
     game.setPositionDefault();
+    game.tt.clear();
 }
 
 pub fn board(game: *Game) *const Board {
@@ -62,6 +64,32 @@ pub fn checkRepetition(game: *Game) ?Score {
     return null;
 }
 
+pub fn ttLoad(game: *Game) TT.Entry {
+    return game.tt.load(game.board().hash);
+}
+
+pub fn ttStore(game: *Game, arg: struct {
+    depth: u7,
+    best_move: Move,
+    bound: TT.Bound,
+    score: Score,
+}) void {
+    game.tt.store(game.board().hash, arg.depth, arg.best_move, arg.bound, arg.score);
+}
+
+pub fn sortMoves(_: *Game, moves: *MoveList, tt_move: Move) void {
+    var sort_scores: [lb.max_legal_moves]i32 = undefined;
+    for (0..moves.moves.len) |i| {
+        const m = moves.moves.get(i);
+        sort_scores[i] = blk: {
+            if (m == tt_move)
+                break :blk @as(i32, 127 << 24);
+            break :blk 0;
+        };
+    }
+    moves.sortInOrder(&sort_scores);
+}
+
 pub fn setPositionDefault(game: *Game) void {
     game.board_stack.resize(1) catch unreachable;
     game.hash_stack.resize(1) catch unreachable;
@@ -94,4 +122,6 @@ const lb = @import("../lb.zig");
 const Board = lb.Board;
 const Hash = lb.Hash;
 const Move = lb.Move;
+const MoveList = lb.MoveList;
 const Score = lb.Score;
+const TT = lb.TT;
