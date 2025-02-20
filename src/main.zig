@@ -28,8 +28,7 @@ pub fn main() !void {
     }
 
     // Handle stdin
-    const buffer_size = lb.max_game_ply * 8;
-    var input = util.lineReader(buffer_size, std.io.getStdIn().reader());
+    var input = util.lineReader(allocator, std.io.getStdIn().reader());
     while (try input.readLine()) |input_line| {
         try usi.usiParseCommand(input_line);
         try usi.out.flush();

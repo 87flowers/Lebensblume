@@ -12,7 +12,6 @@ pub const Game = @import("lb/Game.zig");
 pub const MoveList = @import("lb/MoveList.zig");
 pub const TT = @import("lb/TT.zig");
 
-pub const max_game_ply = 2048;
 pub const max_legal_moves = 600;
 pub const max_search_ply = 128;
 

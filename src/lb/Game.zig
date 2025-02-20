@@ -37,7 +37,8 @@ fn mutBoard(game: *Game) *Board {
 }
 
 pub fn move(game: *Game, m: Move) void {
-    game.board_stack.append(game.board().*) catch @panic("board stack overflow");
+    const old_board = game.board().*;
+    game.board_stack.append(old_board) catch @panic("board stack overflow");
     const new_board: *Board = game.mutBoard();
     new_board.move(m);
 
