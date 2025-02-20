@@ -3,6 +3,8 @@ if [[ $(git diff --stat) != '' ]]; then
   echo "Dirty tree. Commit first please."
   exit 1
 fi
+next_ver=`cat ./src/lb_version | awk -F. -v OFS=. '{$NF=$NF+1;print}'`
+echo $next_ver > ./src/lb_version
 zig build -Doptimize=ReleaseFast
 version=`echo "usi" | ./zig-out/bin/lebensblume | grep "id name" | cut --delimiter=" " -f4`
 if [[ -e "out/lebensblume-$version" ]]; then
@@ -12,3 +14,5 @@ fi
 cp ./zig-out/bin/lebensblume "out/lebensblume-$version"
 cp ./zig-out/bin/lebensblume "out/lebensblume-latest"
 echo "Version $version stored"
+git add ./src/lb_version
+git commit -m "[$version]" -e
