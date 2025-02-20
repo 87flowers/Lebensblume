@@ -1,21 +1,10 @@
-rand: std.Random.DefaultPrng = std.Random.DefaultPrng.init(42),
 board_stack: Stack(Board),
 hash_stack: Stack(Hash),
 search_stack: Stack(SS),
 
-pub fn init() Game {
-    var game = Game{
-        .board_stack = Stack(Board).init(1) catch unreachable,
-        .hash_stack = Stack(Hash).init(1) catch unreachable,
-        .search_stack = Stack(SS).init(1) catch unreachable,
-    };
-    game.board_stack.set(0, Board.defaultBoard());
-    game.hash_stack.set(0, Board.defaultBoard().hash);
-    game.search_stack.set(0, .{});
-    return game;
+pub fn reset(game: *Game) void {
+    game.setPositionDefault();
 }
-
-pub fn deinit(_: *Game) void {}
 
 pub fn board(game: *Game) *const Board {
     return game.mutBoard();

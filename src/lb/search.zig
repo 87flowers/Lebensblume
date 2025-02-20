@@ -23,6 +23,12 @@ pub fn Control(comptime config: struct {
             };
         }
 
+        pub fn reset(self: *@This()) void {
+            _ = self.timer.lap();
+            self.last_time_check = 0;
+            self.nodes = 0;
+        }
+
         pub fn nodeVisited(self: *@This()) void {
             self.nodes += 1;
         }

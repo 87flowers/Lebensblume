@@ -5,8 +5,7 @@ pub fn main() !void {
     defer _ = gpa.deinit();
     const allocator = gpa.allocator();
 
-    g = lb.Game.init();
-    defer g.deinit();
+    g.reset();
 
     var usi = Usi{ .out = UsiOutput.init(std.io.bufferedWriter(std.io.getStdOut().writer())) };
 
@@ -64,6 +63,8 @@ const Usi = struct {
             std.process.exit(0);
         } else if (std.mem.eql(u8, command, "perft")) {
             try self.usiParsePerft(&it);
+        } else if (std.mem.eql(u8, command, "bench")) {
+            try lb.bench.run(&self.out, &g);
         } else if (std.mem.eql(u8, command, "d")) {
             try g.board().prettyPrint(&self.out, .ja);
         } else if (std.mem.eql(u8, command, "de")) {
