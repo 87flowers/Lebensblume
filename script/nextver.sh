@@ -16,3 +16,4 @@ cp ./zig-out/bin/lebensblume "out/lebensblume-latest"
 echo "Version $version stored"
 git add ./src/lb_version
 git commit -m "[$version]" -e
+git push && git push github
