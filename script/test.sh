@@ -1,6 +1,7 @@
 set -euo pipefail
 script_dir=$( cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )
 pushd $script_dir/..
+git checkout -- src/lb_version
 if [[ $(git diff --stat) != '' ]]; then
   echo "Dirty tree. Commit first please."
   popd
