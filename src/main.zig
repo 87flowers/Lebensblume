@@ -150,6 +150,7 @@ const Usi = struct {
     }
 
     fn usiGetReady(self: *Usi) !void {
+        g.reset();
         try self.out.readyok();
     }
 
