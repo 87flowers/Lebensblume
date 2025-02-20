@@ -56,7 +56,12 @@ pub fn unmove(game: *Game) void {
 pub fn checkRepetition(game: *Game) ?Score {
     const hash = game.board().hash;
     const check_for_check = game.board().isInCheck() and game.ss().continuous_check_count != null;
-    var i: usize = @intFromBool(game.board().active_color != game.board_stack.get(0).active_color);
+
+    var i: usize = if (game.hash_stack.len >= 16)
+        game.hash_stack.len - 16
+    else
+        @intFromBool(game.board().active_color != game.board_stack.get(0).active_color);
+
     while (i < game.hash_stack.len - 1) : (i += 2) {
         if (game.hash_stack.get(i) == hash) {
             const dist = game.hash_stack.len - i;
@@ -64,6 +69,7 @@ pub fn checkRepetition(game: *Game) ?Score {
             return 0;
         }
     }
+
     return null;
 }
 
