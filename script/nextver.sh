@@ -1,5 +1,5 @@
 set -euo pipefail
-if [[ $(git diff --stat) != '' ]]; then
+if [[ $(git diff HEAD --stat) != '' ]]; then
   echo "Dirty tree. Commit first please."
   exit 1
 fi
@@ -14,6 +14,8 @@ fi
 cp ./zig-out/bin/lebensblume "out/lebensblume-$version"
 cp ./zig-out/bin/lebensblume "out/lebensblume-latest"
 echo "Version $version stored"
+echo "Running bench..."
+bench=`./zig-out/bin/lebensblume bench | grep "bench results:" -A 3`
 git add ./src/lb_version
-git commit -m "[$version]" -e
+git commit -m "[$version]" -m "$bench" -e
 git push && git push github
