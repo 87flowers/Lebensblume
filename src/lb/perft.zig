@@ -12,7 +12,7 @@ fn core(board: *lb.Board, depth: usize) usize {
     return result;
 }
 
-pub fn go(out: anytype, board: *lb.Board, depth: usize) !usize {
+pub fn go(out: anytype, board: *const lb.Board, depth: usize) !usize {
     if (depth == 0) return 1;
 
     var result: usize = 0;

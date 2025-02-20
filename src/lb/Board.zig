@@ -5,6 +5,7 @@ board_mailbox: [81]Place,
 hand_mailbox: [2]Hand,
 active_color: Color = .sente,
 ply: usize = 0,
+hash: Hash,
 
 checkers: Bitboard,
 pinned: Bitboard,
@@ -40,13 +41,19 @@ pub fn move(board: *Board, m: Move) void {
 
                 const hand_ptype = captured.ptype.demote();
                 board.hand[color_index] |= @as(u8, 1) << @intCast(@intFromEnum(hand_ptype) - 1);
-                board.hand_mailbox[color_index].add(hand_ptype);
+                const new_hand_count = board.hand_mailbox[color_index].add(hand_ptype);
+
+                board.hash ^= lb.zhash.handIncremental(board.active_color, hand_ptype, new_hand_count);
+                board.hash ^= lb.zhash.board(captured.color, captured.ptype, m.to);
             }
 
             const dest_ptype = if (m.promo) src.ptype.promote() else src.ptype;
             board.colors[color_index].set(m.to);
             board.pieces[dest_ptype.toBitboardIndex()].set(m.to);
             board.board_mailbox[m.to.raw] = .{ .color = board.active_color, .ptype = dest_ptype };
+
+            board.hash ^= lb.zhash.board(board.active_color, src.ptype, m.from());
+            board.hash ^= lb.zhash.board(board.active_color, dest_ptype, m.to);
         },
         true => {
             const remaining = board.hand_mailbox[color_index].remove(m.ptype());
@@ -56,11 +63,16 @@ pub fn move(board: *Board, m: Move) void {
             board.colors[color_index].set(m.to);
             board.pieces[m.ptype().toBitboardIndex()].set(m.to);
             board.board_mailbox[m.to.raw] = .{ .color = board.active_color, .ptype = m.ptype() };
+
+            board.hash ^= lb.zhash.handIncremental(board.active_color, m.ptype(), remaining + 1);
+            board.hash ^= lb.zhash.board(board.active_color, m.ptype(), m.to);
         },
     }
     board.active_color = board.active_color.invert();
     board.ply += 1;
     board.precompute();
+    board.hash ^= lb.zhash.move;
+    assert(board.hash == board.calcHashSlow());
 }
 
 pub inline fn getColor(board: *const Board, color: Color) Bitboard {
@@ -346,6 +358,7 @@ pub fn parseParts(board_str: []const u8, color_str: []const u8, hand_str: []cons
         .checkers = .{},
         .pinned = .{},
         .danger = .{},
+        .hash = undefined,
     };
 
     // Parse Pieces
@@ -461,8 +474,37 @@ pub fn parseParts(board_str: []const u8, color_str: []const u8, hand_str: []cons
 
     // Precompute
     result.precompute();
+    result.hash = result.calcHashSlow();
 
     return result;
+}
+
+pub fn calcHashSlow(self: *const Board) Hash {
+    var hash: Hash = 0;
+    for (0..81) |i| {
+        const sq = Square.make(@intCast(i));
+        const place = self.board_mailbox[i];
+        if (place.ptype != .none) hash ^= lb.zhash.board(place.color, place.ptype, sq);
+    }
+
+    hash ^= lb.zhash.hand(.sente, .pawn, self.hand_mailbox[0].pawn);
+    hash ^= lb.zhash.hand(.sente, .bishop, self.hand_mailbox[0].bishop);
+    hash ^= lb.zhash.hand(.sente, .rook, self.hand_mailbox[0].rook);
+    hash ^= lb.zhash.hand(.sente, .lance, self.hand_mailbox[0].lance);
+    hash ^= lb.zhash.hand(.sente, .knight, self.hand_mailbox[0].knight);
+    hash ^= lb.zhash.hand(.sente, .silver, self.hand_mailbox[0].silver);
+    hash ^= lb.zhash.hand(.sente, .gold, self.hand_mailbox[0].gold);
+    hash ^= lb.zhash.hand(.gote, .pawn, self.hand_mailbox[1].pawn);
+    hash ^= lb.zhash.hand(.gote, .bishop, self.hand_mailbox[1].bishop);
+    hash ^= lb.zhash.hand(.gote, .rook, self.hand_mailbox[1].rook);
+    hash ^= lb.zhash.hand(.gote, .lance, self.hand_mailbox[1].lance);
+    hash ^= lb.zhash.hand(.gote, .knight, self.hand_mailbox[1].knight);
+    hash ^= lb.zhash.hand(.gote, .silver, self.hand_mailbox[1].silver);
+    hash ^= lb.zhash.hand(.gote, .gold, self.hand_mailbox[1].gold);
+
+    if (self.active_color == .gote) hash ^= lb.zhash.move;
+
+    return hash;
 }
 
 fn placeBoard(self: *Board, color: Color, ptype: PieceType, sq: Square) void {
@@ -526,15 +568,36 @@ pub const Hand = packed struct(u32) {
     silver: u4 = 0,
     gold: u4 = 0,
 
-    pub fn add(hand: *Hand, ptype: PieceType) void {
+    pub fn add(hand: *Hand, ptype: PieceType) usize {
         switch (ptype) {
-            .pawn => hand.pawn += 1,
-            .bishop => hand.bishop += 1,
-            .rook => hand.rook += 1,
-            .lance => hand.lance += 1,
-            .knight => hand.knight += 1,
-            .silver => hand.silver += 1,
-            .gold => hand.gold += 1,
+            .pawn => {
+                hand.pawn += 1;
+                return hand.pawn;
+            },
+            .bishop => {
+                hand.bishop += 1;
+                return hand.bishop;
+            },
+            .rook => {
+                hand.rook += 1;
+                return hand.rook;
+            },
+            .lance => {
+                hand.lance += 1;
+                return hand.lance;
+            },
+            .knight => {
+                hand.knight += 1;
+                return hand.knight;
+            },
+            .silver => {
+                hand.silver += 1;
+                return hand.silver;
+            },
+            .gold => {
+                hand.gold += 1;
+                return hand.gold;
+            },
             else => unreachable,
         }
     }
@@ -615,6 +678,7 @@ const assert = std.debug.assert;
 const lb = @import("../lb.zig");
 const Bitboard = lb.Bitboard;
 const Color = lb.Color;
+const Hash = lb.Hash;
 const Move = lb.Move;
 const PieceType = lb.PieceType;
 const Square = lb.Square;

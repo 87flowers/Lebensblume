@@ -1,9 +1,12 @@
-var g = lb.Game{};
+var g: lb.Game = undefined;
 
 pub fn main() !void {
     var gpa = std.heap.GeneralPurposeAllocator(.{}){};
     defer _ = gpa.deinit();
     const allocator = gpa.allocator();
+
+    g = lb.Game.init();
+    defer g.deinit();
 
     var usi = Usi{ .out = UsiOutput.init(std.io.bufferedWriter(std.io.getStdOut().writer())) };
 
@@ -62,11 +65,11 @@ const Usi = struct {
         } else if (std.mem.eql(u8, command, "perft")) {
             try self.usiParsePerft(&it);
         } else if (std.mem.eql(u8, command, "d")) {
-            try g.board.prettyPrint(&self.out, .ja);
+            try g.board().prettyPrint(&self.out, .ja);
         } else if (std.mem.eql(u8, command, "de")) {
-            try g.board.prettyPrint(&self.out, .en);
+            try g.board().prettyPrint(&self.out, .en);
         } else if (std.mem.eql(u8, command, "danger")) {
-            try g.board.danger.prettyPrint(&self.out, "    ");
+            try g.board().danger.prettyPrint(&self.out, "    ");
         } else {
             try self.out.protocolError(command, "unknown command", .{});
         }
@@ -99,7 +102,7 @@ const Usi = struct {
 
     fn go(self: *Usi, tc: TimeControl) !void {
         const time_margin = 100 * std.time.ns_per_ms;
-        const time_remaining: u64 = switch (g.board.active_color) {
+        const time_remaining: u64 = switch (g.board().active_color) {
             .sente => tc.btime orelse 0,
             .gote => tc.wtime orelse 0,
         } * std.time.ns_per_ms;
@@ -139,7 +142,7 @@ const Usi = struct {
     fn usiParseMoves(self: *Usi, it: *Iterator) !void {
         while (it.next()) |move_str| {
             const m = lb.Move.parse(move_str) catch return self.out.illegalMoveString(move_str);
-            g.board.move(m);
+            g.move(m);
         }
     }
 
@@ -150,7 +153,7 @@ const Usi = struct {
     fn usiParsePerft(self: *Usi, it: *Iterator) !void {
         const depth_str = it.next() orelse "1";
         const depth = std.fmt.parseUnsigned(usize, depth_str, 10) catch return self.out.unrecognisedToken("perft", depth_str);
-        _ = try lb.perft.go(&self.out, &g.board, depth);
+        _ = try lb.perft.go(&self.out, g.board(), depth);
     }
 
     fn expectToken(self: *Usi, comptime command: []const u8, it: *Iterator, comptime token: []const u8) !bool {

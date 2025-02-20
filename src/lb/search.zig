@@ -81,7 +81,7 @@ fn forDepth(game: *Game, ctrl: anytype, pv: anytype, depth: i32, prev_score: i32
     return try search(game, ctrl, pv, min_window, max_window, 0, depth);
 }
 
-fn eval(board: *Board) lb.Score {
+fn eval(board: *const Board) lb.Score {
     const piece_values = [_]lb.Score{
         100,
         800,
@@ -129,23 +129,27 @@ fn eval(board: *Board) lb.Score {
 fn search(game: *Game, ctrl: anytype, pv: anytype, alpha_orig: i32, beta: i32, ply: u32, depth: i32) SearchError!lb.Score {
     var alpha = alpha_orig;
 
-    if (depth <= 0) return eval(&game.board); // TODO: return eval
-    if (ply >= lb.max_search_ply) return eval(&game.board); // TODO: return eval if not in check
+    if (depth <= 0) return eval(game.board()); // TODO: return eval
+    if (ply >= lb.max_search_ply) return eval(game.board()); // TODO: return eval if not in check
 
     try ctrl.checkHardTermination();
 
     var best_score: lb.Score = std.math.minInt(lb.Score);
 
     var moves = MoveList{};
-    moves.generateMoves(&game.board);
+    moves.generateMoves(game.board());
+
+    if (moves.moves.len == 0) return -std.math.maxInt(lb.Score);
 
     for (moves.moves.slice()) |m| {
-        const old_board = game.board;
-        defer game.board = old_board;
-        game.board.move(m);
+        game.move(m);
+        defer game.unmove();
 
         var child_pv = pv.newChild();
-        const child_score = -try search(game, ctrl, &child_pv, -beta, -alpha, ply + 1, depth - 1);
+        const child_score = blk: {
+            if (game.checkRepetition()) |repscore| break :blk repscore;
+            break :blk -try search(game, ctrl, &child_pv, -beta, -alpha, ply + 1, depth - 1);
+        };
 
         ctrl.nodeVisited();
 
