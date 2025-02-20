@@ -3,6 +3,22 @@ hash_stack: Stack(Hash),
 search_stack: Stack(SS),
 tt: TT,
 
+pub fn init(allocator: std.mem.Allocator) !Game {
+    return .{
+        .board_stack = Stack(Board).init(allocator),
+        .hash_stack = Stack(Hash).init(allocator),
+        .search_stack = Stack(SS).init(allocator),
+        .tt = try TT.init(allocator),
+    };
+}
+
+pub fn deinit(game: *Game) void {
+    game.board_stack.deinit();
+    game.hash_stack.deinit();
+    game.search_stack.deinit();
+    game.tt.deinit();
+}
+
 pub fn reset(game: *Game) void {
     game.setPositionDefault();
     game.tt.clear();
@@ -13,11 +29,11 @@ pub fn board(game: *Game) *const Board {
 }
 
 pub fn ss(game: *Game) *SS {
-    return &game.search_stack.slice()[game.search_stack.len - 1];
+    return &game.search_stack.items[game.search_stack.items.len - 1];
 }
 
 fn mutBoard(game: *Game) *Board {
-    return &game.board_stack.slice()[game.board_stack.len - 1];
+    return &game.board_stack.items[game.board_stack.items.len - 1];
 }
 
 pub fn move(game: *Game, m: Move) void {
@@ -48,14 +64,14 @@ pub fn checkRepetition(game: *Game) ?Score {
     const hash = game.board().hash;
     const check_for_check = game.board().isInCheck() and game.ss().continuous_check_count != null;
 
-    var i: usize = if (game.hash_stack.len >= 16)
-        game.hash_stack.len - 16
+    var i: usize = if (game.hash_stack.items.len >= 16)
+        game.hash_stack.items.len - 16
     else
-        @intFromBool(game.board().active_color != game.board_stack.get(0).active_color);
+        @intFromBool(game.board().active_color != game.board_stack.items[0].active_color);
 
-    while (i < game.hash_stack.len - 1) : (i += 2) {
-        if (game.hash_stack.get(i) == hash) {
-            const dist = game.hash_stack.len - i;
+    while (i < game.hash_stack.items.len - 1) : (i += 2) {
+        if (game.hash_stack.items[i] == hash) {
+            const dist = game.hash_stack.items.len - i;
             if (check_for_check and dist >= game.ss().continuous_check_count.?) return std.math.minInt(Score);
             return 0;
         }
@@ -87,18 +103,18 @@ pub fn setPositionDefault(game: *Game) void {
     game.board_stack.resize(1) catch unreachable;
     game.hash_stack.resize(1) catch unreachable;
     game.search_stack.resize(1) catch unreachable;
-    game.board_stack.set(0, Board.defaultBoard());
-    game.hash_stack.set(0, Board.defaultBoard().hash);
-    game.search_stack.set(0, .{});
+    game.board_stack.items[0] = Board.defaultBoard();
+    game.hash_stack.items[0] = Board.defaultBoard().hash;
+    game.search_stack.items[0] = .{};
 }
 
 pub fn setPosition(game: *Game, position: lb.Board) void {
     game.board_stack.resize(1) catch unreachable;
     game.hash_stack.resize(1) catch unreachable;
     game.search_stack.resize(1) catch unreachable;
-    game.board_stack.set(0, position);
-    game.hash_stack.set(0, position.hash);
-    game.search_stack.set(0, .{ .continuous_check_count = if (position.isInCheck()) 0 else null });
+    game.board_stack.items[0] = position;
+    game.hash_stack.items[0] = position.hash;
+    game.search_stack.items[0] = .{ .continuous_check_count = if (position.isInCheck()) 0 else null };
 }
 
 const SS = struct {
@@ -106,7 +122,7 @@ const SS = struct {
 };
 
 fn Stack(T: type) type {
-    return std.BoundedArray(T, lb.max_game_ply);
+    return std.ArrayList(T);
 }
 
 const Game = @This();
