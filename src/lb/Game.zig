@@ -78,16 +78,9 @@ pub fn ttStore(game: *Game, arg: struct {
 }
 
 pub fn sortMoves(_: *Game, moves: *MoveList, tt_move: Move) void {
-    var sort_scores: [lb.max_legal_moves]i32 = undefined;
-    for (0..moves.moves.len) |i| {
-        const m = moves.moves.get(i);
-        sort_scores[i] = blk: {
-            if (m == tt_move)
-                break :blk @as(i32, 127 << 24);
-            break :blk 0;
-        };
+    if (std.mem.indexOfScalar(Move, moves.moves.slice(), tt_move)) |index| {
+        std.mem.swap(Move, &moves.moves.slice()[0], &moves.moves.slice()[index]);
     }
-    moves.sortInOrder(&sort_scores);
 }
 
 pub fn setPositionDefault(game: *Game) void {
