@@ -11,8 +11,9 @@ if [[ -e "out/lebensblume-$version" ]]; then
   echo "Version $version alredy exists"
   exit 1
 fi
-cp ./zig-out/bin/lebensblume "out/lebensblume-$version"
+rm "out/lebensblume-latest"
 cp ./zig-out/bin/lebensblume "out/lebensblume-latest"
+cp ./zig-out/bin/lebensblume "out/lebensblume-$version"
 echo "Version $version stored"
 echo "Running bench..."
 bench=`./zig-out/bin/lebensblume bench | grep "bench results:" -A 3`
