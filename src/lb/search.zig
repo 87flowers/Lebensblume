@@ -204,6 +204,8 @@ fn search(game: *Game, ctrl: anytype, pv: anytype, alpha_orig: i32, beta: i32, p
         }
     }
 
+    if (@abs(best_score) >= 1073741824) best_score -= std.math.sign(best_score);
+
     game.ttStore(.{
         .depth = @intCast(depth),
         .best_move = best_move,
