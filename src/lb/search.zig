@@ -126,10 +126,40 @@ fn eval(board: *const Board) Score {
     result += @as(Score, board.hand_mailbox[0].gold) * 600;
     result -= @as(Score, board.hand_mailbox[1].gold) * 600;
 
+    const sente_king = board.getKingSq(.sente);
+    const sente_king_rank = sente_king.raw / 9;
+    const sente_king_file = sente_king.raw % 9;
+    const gote_king = board.getKingSq(.gote);
+    const gote_king_rank = gote_king.raw / 9;
+    const gote_king_file = gote_king.raw % 9;
+
+    const sente_attack = board.getAttackMap(.sente);
+    const gote_attack = board.getAttackMap(.gote);
+
+    for (0..9) |rank| {
+        for (0..9) |file| {
+            const sq = lb.Square.make(@intCast(file + rank * 9)).bitboard();
+            const sente_count: usize = @intFromBool(!sente_attack.@"and"(sq).empty());
+            const gote_count: usize = @intFromBool(!gote_attack.@"and"(sq).empty());
+
+            const sente_dist = @max(abs_diff(sente_king_rank, rank), abs_diff(sente_king_file, file));
+            const gote_dist = @max(abs_diff(gote_king_rank, rank), abs_diff(gote_king_file, file));
+
+            result += @intCast(sente_count * 50 / (1 + sente_dist));
+            result -= @intCast(gote_count * 90 / (1 + sente_dist));
+            result -= @intCast(gote_count * 50 / (1 + gote_dist));
+            result += @intCast(sente_count * 90 / (1 + gote_dist));
+        }
+    }
+
     return switch (board.active_color) {
         .sente => result,
         .gote => -result,
     };
+}
+
+fn abs_diff(a: usize, b: usize) usize {
+    return if (a > b) a - b else b - a;
 }
 
 fn search(game: *Game, ctrl: anytype, pv: anytype, alpha_orig: i32, beta: i32, ply: u32, depth: i32) SearchError!Score {
