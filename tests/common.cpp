@@ -42,8 +42,59 @@ auto test_move() -> void {
   lb_assert(std::format("{}", Move::makeMove(Square::parse("5f").value(), Square::parse("5a").value(), true)) == "5f5a+");
 }
 
+auto test_shift() -> void {
+  {
+    const Bitboard base{0x800};
+    lb_assert(base.shift(Direction::n).raw == 0x000004);
+    lb_assert(base.shift(Direction::ne).raw == 0x000002);
+    lb_assert(base.shift(Direction::e).raw == 0x000400);
+    lb_assert(base.shift(Direction::se).raw == 0x080000);
+    lb_assert(base.shift(Direction::s).raw == 0x100000);
+    lb_assert(base.shift(Direction::sw).raw == 0x200000);
+    lb_assert(base.shift(Direction::w).raw == 0x001000);
+    lb_assert(base.shift(Direction::nw).raw == 0x000008);
+  }
+
+  {
+    const Bitboard base = Bitboard::fromSq(Square::parse("7e").value());
+    lb_assert(base.shift(Direction::n).toSq() == Square::parse("7d"));
+    lb_assert(base.shift(Direction::ne).toSq() == Square::parse("6d"));
+    lb_assert(base.shift(Direction::e).toSq() == Square::parse("6e"));
+    lb_assert(base.shift(Direction::se).toSq() == Square::parse("6f"));
+    lb_assert(base.shift(Direction::s).toSq() == Square::parse("7f"));
+    lb_assert(base.shift(Direction::sw).toSq() == Square::parse("8f"));
+    lb_assert(base.shift(Direction::w).toSq() == Square::parse("8e"));
+    lb_assert(base.shift(Direction::nw).toSq() == Square::parse("8d"));
+  }
+
+  {
+    const Bitboard base = Bitboard::fromSq(Square::parse("7e").value());
+    lb_assert(base.shiftRelative(Direction::n, Color::sente).toSq() == Square::parse("7d"));
+    lb_assert(base.shiftRelative(Direction::ne, Color::sente).toSq() == Square::parse("6d"));
+    lb_assert(base.shiftRelative(Direction::e, Color::sente).toSq() == Square::parse("6e"));
+    lb_assert(base.shiftRelative(Direction::se, Color::sente).toSq() == Square::parse("6f"));
+    lb_assert(base.shiftRelative(Direction::s, Color::sente).toSq() == Square::parse("7f"));
+    lb_assert(base.shiftRelative(Direction::sw, Color::sente).toSq() == Square::parse("8f"));
+    lb_assert(base.shiftRelative(Direction::w, Color::sente).toSq() == Square::parse("8e"));
+    lb_assert(base.shiftRelative(Direction::nw, Color::sente).toSq() == Square::parse("8d"));
+  }
+
+  {
+    const Bitboard base = Bitboard::fromSq(Square::parse("7e").value());
+    lb_assert(base.shiftRelative(Direction::n, Color::gote).toSq() == Square::parse("7f"));
+    lb_assert(base.shiftRelative(Direction::ne, Color::gote).toSq() == Square::parse("8f"));
+    lb_assert(base.shiftRelative(Direction::e, Color::gote).toSq() == Square::parse("8e"));
+    lb_assert(base.shiftRelative(Direction::se, Color::gote).toSq() == Square::parse("8d"));
+    lb_assert(base.shiftRelative(Direction::s, Color::gote).toSq() == Square::parse("7d"));
+    lb_assert(base.shiftRelative(Direction::sw, Color::gote).toSq() == Square::parse("6d"));
+    lb_assert(base.shiftRelative(Direction::w, Color::gote).toSq() == Square::parse("6e"));
+    lb_assert(base.shiftRelative(Direction::nw, Color::gote).toSq() == Square::parse("6f"));
+  }
+}
+
 auto main() -> int {
   test_square();
   test_move();
+  test_shift();
   return 0;
 }

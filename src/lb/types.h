@@ -40,6 +40,7 @@ namespace lb {
           throw x;
         result *= base;
         result += digit;
+        x++;
       }
       return result;
     }
