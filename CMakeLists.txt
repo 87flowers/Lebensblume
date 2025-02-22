@@ -22,11 +22,12 @@ add_link_options(-march=native)
 add_compile_definitions(LB_VERSION="${CMAKE_PROJECT_VERSION}")
 
 add_library(lb OBJECT
-  src/lb/bitboard.cpp
-  src/lb/bitboard.h
+  src/lb/assert.cpp
+  src/lb/assert.h
+  src/lb/common.h
   src/lb/types.h
 )
 
 add_executable(lebensblume src/main.cpp $<TARGET_OBJECTS:lb>)
 
-do_test(test)
+do_test(common)
