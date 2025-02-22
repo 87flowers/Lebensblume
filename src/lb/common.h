@@ -1,6 +1,7 @@
 #pragma once
 
 #include <algorithm>
+#include <array>
 #include <bit>
 #include <compare>
 #include <expected>
@@ -41,7 +42,7 @@ namespace lb {
       horse = 0xA,
       dragon = 0xB,
       nari_lance = 0xC,
-      nari_kight = 0xD,
+      nari_knight = 0xD,
       nari_silver = 0xE,
     };
 
@@ -62,7 +63,44 @@ namespace lb {
       lb_assert(raw != none);
       return std::min<usize>(bitboard_count, raw) - 1;
     }
+
+    inline static constexpr std::array<std::array<const char *, 2>, 15> en_strings{{
+        {"-", "-"},
+        {"P", "p"},
+        {"B", "b"},
+        {"R", "r"},
+        {"L", "l"},
+        {"N", "n"},
+        {"S", "s"},
+        {"G", "g"},
+        {"K", "k"},
+        {"+P", "+p"},
+        {"+B", "+b"},
+        {"+R", "+r"},
+        {"+L", "+l"},
+        {"+N", "+n"},
+        {"+S", "+s"},
+    }};
+    inline static constexpr std::array<std::array<const char *, 2>, 15> ja_strings{{
+        {"　", "　"},
+        {"歩", "歩"},
+        {"角", "角"},
+        {"飛", "飛"},
+        {"香", "香"},
+        {"桂", "桂"},
+        {"銀", "銀"},
+        {"金", "金"},
+        {"玉", "王"},
+        {"と", "と"},
+        {"馬", "馬"},
+        {"龍", "龍"},
+        {"杏", "杏"},
+        {"圭", "圭"},
+        {"全", "全"},
+    }};
   };
+
+  inline auto operator==(PieceType a, PieceType b) -> bool { return a.raw == b.raw; }
 
   struct Square {
     u8 raw = 0;
@@ -105,8 +143,7 @@ namespace lb {
       result |= static_cast<u16>(ptype.raw) << 8;
       return Move{result};
     }
-
-    auto drop() -> bool { return raw & drop_flag != 0; }
+    auto drop() -> bool { return (raw & drop_flag) != 0; }
     auto to() -> Square { return Square{static_cast<u8>(raw & 0x7F)}; }
     auto promo() -> bool {
       lb_assert(!drop());
@@ -124,6 +161,8 @@ namespace lb {
   private:
     inline static constexpr u16 drop_flag = 1 << 7;
   };
+
+  inline auto operator==(Move a, Move b) -> bool { return a.raw == b.raw; }
 
   struct Bitboard {
     u128 raw = 0;
@@ -158,10 +197,38 @@ namespace lb {
   inline auto operator==(Square a, Square b) -> bool { return a.raw == b.raw; }
 } // namespace lb
 
+template <> struct std::formatter<lb::Color, char> {
+  template <class ParseContext> constexpr auto parse(ParseContext &ctx) -> ParseContext::iterator { return ctx.begin(); }
+
+  template <class FmtContext> auto format(lb::Color c, FmtContext &ctx) const -> FmtContext::iterator {
+    return std::format_to(ctx.out(), "{}", c == lb::Color::sente ? 'b' : 'w');
+  }
+};
+
+template <> struct std::formatter<lb::PieceType, char> {
+  template <class ParseContext> constexpr auto parse(ParseContext &ctx) -> ParseContext::iterator { return ctx.begin(); }
+
+  template <class FmtContext> auto format(lb::PieceType ptype, FmtContext &ctx) const -> FmtContext::iterator {
+    return std::format_to(ctx.out(), "{}", lb::PieceType::en_strings[ptype.raw][0]);
+  }
+};
+
 template <> struct std::formatter<lb::Square, char> {
   template <class ParseContext> constexpr auto parse(ParseContext &ctx) -> ParseContext::iterator { return ctx.begin(); }
 
   template <class FmtContext> auto format(lb::Square sq, FmtContext &ctx) const -> FmtContext::iterator {
     return std::format_to(ctx.out(), "{}{}", static_cast<char>('1' + sq.raw % 9), static_cast<char>('a' + sq.raw / 9));
+  }
+};
+
+template <> struct std::formatter<lb::Move, char> {
+  template <class ParseContext> constexpr auto parse(ParseContext &ctx) -> ParseContext::iterator { return ctx.begin(); }
+
+  template <class FmtContext> auto format(lb::Move m, FmtContext &ctx) const -> FmtContext::iterator {
+    if (m.drop()) {
+      return std::format_to(ctx.out(), "{}*{}", m.ptype(), m.to());
+    } else {
+      return std::format_to(ctx.out(), "{}{}{}", m.from(), m.to(), m.promo() ? "+" : "");
+    }
   }
 };

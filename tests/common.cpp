@@ -30,13 +30,20 @@ auto test_square() -> void {
     for (u8 i = 0; i < 81; i++) {
       const Square sq{i};
       const std::string str = std::format("{}", sq);
-      std::print("{} {}\n", i, sq);
       lb_assert(sq == Square::parse(str));
     }
   }
 }
 
+auto test_move() -> void {
+  lb_assert(std::format("{}", Move::makeDrop(PieceType::bishop, Square::parse("3f").value())) == "B*3f");
+  lb_assert(std::format("{}", Move::makeDrop(PieceType::rook, Square::parse("7i").value())) == "R*7i");
+  lb_assert(std::format("{}", Move::makeMove(Square::parse("2e").value(), Square::parse("7e").value(), false)) == "2e7e");
+  lb_assert(std::format("{}", Move::makeMove(Square::parse("5f").value(), Square::parse("5a").value(), true)) == "5f5a+");
+}
+
 auto main() -> int {
   test_square();
+  test_move();
   return 0;
 }
