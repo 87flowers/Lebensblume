@@ -1,5 +1,3 @@
 #include <print>
 
-int main() {
-  std::print("# Lebensblume {}\n", LB_VERSION);
-}
+int main() { std::print("# Lebensblume {}\n", LB_VERSION); }
