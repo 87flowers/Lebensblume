@@ -22,7 +22,7 @@ namespace lb {
   using f64 = double;
 
   namespace internal {
-    inline constexpr u8 digitValue(char c) {
+    inline constexpr auto digitValue(char c) -> u8 {
       if (c >= '0' && c <= '9')
         return c - '0';
       if (c >= 'a' && c <= 'z')

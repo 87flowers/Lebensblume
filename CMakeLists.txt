@@ -24,6 +24,8 @@ add_compile_definitions(LB_VERSION="${CMAKE_PROJECT_VERSION}")
 add_library(lb OBJECT
   src/lb/assert.cpp
   src/lb/assert.h
+  src/lb/attacks.h
+  src/lb/bit.h
   src/lb/common.h
   src/lb/types.h
 )

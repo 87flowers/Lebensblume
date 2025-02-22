@@ -22,8 +22,8 @@ namespace lb {
   };
 
   enum class Color {
-    sente,
-    gote,
+    sente = 0,
+    gote = 1,
   };
 
   inline constexpr auto invert(Color c) -> Color { return c == Color::sente ? Color::gote : Color::sente; }
@@ -201,7 +201,7 @@ namespace lb {
       return Bitboard{up | down};
     }
 
-    constexpr auto shift(Direction dir) const -> Bitboard {
+    inline constexpr auto shift(Direction dir) const -> Bitboard {
       switch (dir) {
       case Direction::n:
         return Bitboard{raw >> 9};
@@ -223,7 +223,7 @@ namespace lb {
       std::unreachable();
     }
 
-    constexpr auto shiftRelative(Direction dir, Color perspective) const -> Bitboard {
+    inline constexpr auto shiftRelative(Direction dir, Color perspective) const -> Bitboard {
       switch (perspective) {
       case Color::sente:
         return shift(dir);
