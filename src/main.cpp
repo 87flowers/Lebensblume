@@ -1,3 +1,6 @@
 #include <print>
 
-int main() { std::print("# Lebensblume {}\n", LB_VERSION); }
+auto main() -> int {
+  std::print("# Lebensblume {}\n", LB_VERSION);
+  return 0;
+}

@@ -1,5 +1,6 @@
 #pragma once
 
+#include <algorithm>
 #include <bit>
 #include <compare>
 #include <expected>
@@ -18,8 +19,53 @@ namespace lb {
     invalid_board,
   };
 
+  enum class Color {
+    sente,
+    gote,
+  };
+
+  inline auto invert(Color c) -> Color { return c == Color::sente ? Color::gote : Color::sente; }
+
+  struct PieceType {
+    enum Inner : u8 {
+      none = 0x0,
+      pawn = 0x1,
+      bishop = 0x2,
+      rook = 0x3,
+      lance = 0x4,
+      knight = 0x5,
+      silver = 0x6,
+      gold = 0x7,
+      king = 0x8,
+      tokin = 0x9,
+      horse = 0xA,
+      dragon = 0xB,
+      nari_lance = 0xC,
+      nari_kight = 0xD,
+      nari_silver = 0xE,
+    };
+
+    Inner raw = none;
+
+    static constexpr size_t bitboard_count = 0xC;
+
+    /* implicit */ PieceType(Inner raw) : raw(raw) {}
+
+    inline auto promotable() -> bool { return raw >= pawn && raw <= silver; }
+    inline auto promoted() -> bool { return raw >= tokin; }
+    inline auto promote() -> PieceType {
+      lb_assert(raw != none && raw != gold);
+      return PieceType{static_cast<Inner>(raw | 0x8)};
+    }
+    inline auto demote() -> PieceType { return promoted() ? PieceType{static_cast<Inner>(raw & 0x7)} : *this; }
+    inline auto toBitboardIndex() -> usize {
+      lb_assert(raw != none);
+      return std::min<usize>(bitboard_count, raw) - 1;
+    }
+  };
+
   struct Square {
-    u8 raw;
+    u8 raw = 0;
 
     explicit Square(u8 raw) : raw(raw) { lb_assert(raw < 81); }
 
@@ -38,12 +84,55 @@ namespace lb {
 
   inline auto operator<=>(Square a, Square b) -> std::strong_ordering { return a.raw <=> b.raw; }
 
+  struct Move {
+    u16 raw = 0;
+
+    explicit constexpr Move(u16 raw) : raw(raw) {}
+
+    static constexpr Move none() { return Move{0}; };
+
+    static auto makeMove(Square from, Square to, bool promotion) -> Move {
+      u16 result = 0;
+      result |= to.raw;
+      result |= static_cast<u16>(from.raw) << 8;
+      result |= static_cast<u16>(promotion) << 15;
+      return Move{result};
+    }
+
+    static auto makeDrop(PieceType ptype, Square to) -> Move {
+      u16 result = drop_flag;
+      result |= to.raw;
+      result |= static_cast<u16>(ptype.raw) << 8;
+      return Move{result};
+    }
+
+    auto drop() -> bool { return raw & drop_flag != 0; }
+    auto to() -> Square { return Square{static_cast<u8>(raw & 0x7F)}; }
+    auto promo() -> bool {
+      lb_assert(!drop());
+      return static_cast<bool>(raw >> 15);
+    }
+    auto from() -> Square {
+      lb_assert(!drop());
+      return Square{static_cast<u8>((raw >> 8) & 0x7F)};
+    }
+    auto ptype() -> PieceType {
+      lb_assert(drop());
+      return PieceType{static_cast<PieceType::Inner>(raw >> 8)};
+    }
+
+  private:
+    inline static constexpr u16 drop_flag = 1 << 7;
+  };
+
   struct Bitboard {
-    u128 raw;
+    u128 raw = 0;
 
     explicit Bitboard(u128 raw) : raw(raw) {}
 
-    static auto fromSq(Square sq) -> Bitboard { return Bitboard{u128(1) << sq.raw}; }
+    static constexpr auto rank(usize i) -> Bitboard { return Bitboard{0x1FF_u128 << (i * 9)}; }
+
+    static auto fromSq(Square sq) -> Bitboard { return Bitboard{1_u128 << sq.raw}; }
     auto toSq() const -> Square { return Square{narrow_cast<u8>(std::countr_zero(raw))}; }
 
     auto operator|=(Bitboard b) -> Bitboard & {

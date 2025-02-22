@@ -36,4 +36,7 @@ auto test_square() -> void {
   }
 }
 
-auto main() -> int { test_square(); }
+auto main() -> int {
+  test_square();
+  return 0;
+}
