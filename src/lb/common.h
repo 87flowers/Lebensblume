@@ -19,6 +19,7 @@ namespace lb {
     out_of_range,
     invalid_hand,
     invalid_board,
+    too_many_kings,
   };
 
   enum class Color {
@@ -64,49 +65,32 @@ namespace lb {
       lb_assert(raw != none);
       return std::min<usize>(bitboard_count, raw) - 1;
     }
+    inline constexpr auto toHandIndex() -> usize {
+      lb_assert(raw != none && raw < king);
+      return static_cast<usize>(raw);
+    }
 
     inline constexpr auto operator==(const PieceType &) const -> bool = default;
 
-    inline static constexpr std::array<std::array<const char *, 2>, 15> en_strings{{
-        {"-", "-"},
-        {"P", "p"},
-        {"B", "b"},
-        {"R", "r"},
-        {"L", "l"},
-        {"N", "n"},
-        {"S", "s"},
-        {"G", "g"},
-        {"K", "k"},
-        {"+P", "+p"},
-        {"+B", "+b"},
-        {"+R", "+r"},
-        {"+L", "+l"},
-        {"+N", "+n"},
-        {"+S", "+s"},
+    inline static constexpr std::string_view piece_order_sente{"PBRLNSGK"};
+    inline static constexpr std::string_view piece_order_gote{"pbrlnsgk"};
+
+    inline static constexpr std::array<std::array<const char *, 15>, 2> en_strings{{
+        {"-", "P", "B", "R", "L", "N", "S", "G", "K", "+P", "+B", "+R", "+L", "+N", "+S"},
+        {"-", "p", "b", "r", "l", "n", "s", "g", "k", "+p", "+b", "+r", "+l", "+n", "+s"},
     }};
-    inline static constexpr std::array<std::array<const char *, 2>, 15> ja_strings{{
-        {"　", "　"},
-        {"歩", "歩"},
-        {"角", "角"},
-        {"飛", "飛"},
-        {"香", "香"},
-        {"桂", "桂"},
-        {"銀", "銀"},
-        {"金", "金"},
-        {"玉", "王"},
-        {"と", "と"},
-        {"馬", "馬"},
-        {"龍", "龍"},
-        {"杏", "杏"},
-        {"圭", "圭"},
-        {"全", "全"},
+    inline static constexpr std::array<std::array<const char *, 15>, 2> ja_strings{{
+        {"　", "歩", "角", "飛", "香", "桂", "銀", "金", "玉", "と", "馬", "龍", "杏", "圭", "全"},
+        {"　", "歩", "角", "飛", "香", "桂", "銀", "金", "王", "と", "馬", "龍", "杏", "圭", "全"},
     }};
   };
 
   struct Square {
     u8 raw = 0;
 
-    explicit constexpr Square(u8 raw) : raw(raw) { lb_assert(raw < 81); }
+    inline explicit constexpr Square(u8 raw) : raw(raw) { lb_assert(raw < 81); }
+
+    inline static constexpr auto fromFileAndRank(usize file, usize rank) -> Square { return Square{narrow_cast<u8>(rank * 9 + file)}; }
 
     static constexpr auto parse(std::string_view str) -> std::expected<Square, ParseError> {
       if (str.size() != 2)
@@ -117,7 +101,7 @@ namespace lb {
       if (str[1] < 'a' or str[1] > 'i')
         return std::unexpected(ParseError::invalid_char);
       const u8 rank = str[1] - 'a';
-      return Square{narrow_cast<u8>(rank * 9 + file)};
+      return fromFileAndRank(file, rank);
     }
 
     constexpr auto operator<=>(const Square &) const -> std::strong_ordering = default;
@@ -269,8 +253,8 @@ namespace lb {
       u128 bb;
     };
 
-    constexpr auto begin() -> Iterator { return Iterator{raw}; }
-    constexpr auto end() -> Iterator { return Iterator{0}; }
+    constexpr auto begin() const -> Iterator { return Iterator{raw}; }
+    constexpr auto end() const -> Iterator { return Iterator{0}; }
 
   private:
     inline static constexpr u128 mask = (1_u128 << 81) - 1;
@@ -296,7 +280,7 @@ template <> struct std::formatter<lb::PieceType, char> {
   template <class ParseContext> constexpr auto parse(ParseContext &ctx) -> ParseContext::iterator { return ctx.begin(); }
 
   template <class FmtContext> auto format(lb::PieceType ptype, FmtContext &ctx) const -> FmtContext::iterator {
-    return std::format_to(ctx.out(), "{}", lb::PieceType::en_strings[ptype.raw][0]);
+    return std::format_to(ctx.out(), "{}", lb::PieceType::en_strings[0][ptype.raw]);
   }
 };
 
