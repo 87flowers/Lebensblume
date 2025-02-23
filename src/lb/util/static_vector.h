@@ -14,6 +14,8 @@ namespace lb {
     using const_iterator = const T *;
     using size_type = usize;
 
+    constexpr StaticVector() = default;
+
     constexpr auto push_back(const T &value) -> iterator {
       if (len >= cap)
         return end();

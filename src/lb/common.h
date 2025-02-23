@@ -136,6 +136,7 @@ namespace lb {
   struct Move {
     u16 raw = 0;
 
+    constexpr Move() = default;
     explicit constexpr Move(u16 raw) : raw(raw) {}
 
     static constexpr Move none() { return Move{0}; };
@@ -291,6 +292,8 @@ namespace lb {
       std::unreachable();
     }
 
+    inline constexpr auto operator~() const -> Bitboard { return Bitboard{~raw & mask}; }
+
     constexpr auto operator|=(Bitboard b) -> Bitboard & {
       raw |= b.raw;
       return *this;
@@ -335,7 +338,6 @@ namespace lb {
   inline constexpr auto operator&(Bitboard a, Bitboard b) -> Bitboard { return Bitboard{a.raw & b.raw}; }
   inline constexpr auto operator|(Bitboard a, Bitboard b) -> Bitboard { return Bitboard{a.raw | b.raw}; }
   inline constexpr auto operator^(Bitboard a, Bitboard b) -> Bitboard { return Bitboard{a.raw ^ b.raw}; }
-  inline constexpr auto operator~(Bitboard a) -> Bitboard { return Bitboard{~a.raw}; }
 } // namespace lb
 
 template <> struct std::formatter<lb::Color, char> {

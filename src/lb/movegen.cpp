@@ -31,9 +31,9 @@ namespace lb::movegen {
       lb_assert(false);
     case PieceType::pawn:
     case PieceType::lance:
-      return Bitboard::rankRelative(0, active_color);
+      return ~Bitboard::rankRelative(0, active_color);
     case PieceType::knight:
-      return Bitboard::rankRelative(0, active_color) | Bitboard::rankRelative(1, active_color);
+      return ~(Bitboard::rankRelative(0, active_color) | Bitboard::rankRelative(1, active_color));
     default:
       return ~Bitboard{};
     }
@@ -74,9 +74,11 @@ namespace lb::movegen {
     const Square king_sq = board.getKingSq(color);
 
     const auto gen = [&]<PieceType ptype>(auto op) {
-      const Bitboard from_bb = board.getPiece(color, ptype);
-      const Bitboard nonpinned_from_bb = from_bb & pinned;
-      const Bitboard pinned_from_bb = from_bb & ~pinned;
+      const Bitboard from_bb = ptype == PieceType::gold
+                                   ? board.getPiece(color, PieceType::gold) | board.getPiece(color, PieceType::tokin) | board.getPromoteds(color)
+                                   : board.getPiece(color, ptype);
+      const Bitboard nonpinned_from_bb = from_bb & ~pinned;
+      const Bitboard pinned_from_bb = from_bb & pinned;
 
       for (Square from : nonpinned_from_bb) {
         const Bitboard to_bb = op(from, color, occupied) & valid_dests;
@@ -97,8 +99,6 @@ namespace lb::movegen {
         }
       }
     };
-
-    const Bitboard golds = board.getPiece(color, PieceType::gold) | board.getPiece(color, PieceType::tokin) | board.getPromoteds(color);
 
     gen.template operator()<PieceType::dragon>(
         [](Square from, Color color, Bitboard blockers) { return attacks::rook(from, blockers) | attacks::king(from); });

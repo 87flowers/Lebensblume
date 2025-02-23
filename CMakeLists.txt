@@ -39,6 +39,8 @@ add_library(lb OBJECT
   src/lb/geometry.h
   src/lb/movegen.cpp
   src/lb/movegen.h
+  src/lb/perft.cpp
+  src/lb/perft.h
   src/lb/tokenizer.h
   src/lb/types.h
   src/lb/util/pext.h
@@ -50,3 +52,4 @@ add_executable(lebensblume src/main.cpp $<TARGET_OBJECTS:lb>)
 do_test(board)
 do_test(common)
 do_test(movegen)
+do_test(perft)

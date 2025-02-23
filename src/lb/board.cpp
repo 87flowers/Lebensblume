@@ -12,6 +12,16 @@ namespace lb {
     const Square m_to = m.to();
 
     if (m.drop()) {
+      const PieceType hand_ptype = m.ptype();
+
+      const u8 remaining_in_hand = --hand[color_index][hand_ptype.toHandIndex()];
+      if (remaining_in_hand == 0)
+        hand[color_index][0] &= ~(1 << hand_ptype.toHandIndex());
+
+      colors[color_index].set(m_to);
+      pieces[hand_ptype.toBitboardIndex()].set(m_to);
+      board_mailbox[m_to.raw] = Place{active_color, hand_ptype};
+    } else {
       const Square m_from = m.from();
 
       const Place src = board_mailbox[m_from.raw];
@@ -37,15 +47,7 @@ namespace lb {
       const PieceType dest_ptype = m.promo() ? src.ptype().promote() : src.ptype();
       colors[color_index].set(m_to);
       pieces[dest_ptype.toBitboardIndex()].set(m_to);
-    } else {
-      const PieceType hand_ptype = m.ptype();
-
-      hand[color_index][0] &= ~(1 << hand_ptype.toHandIndex());
-      hand[color_index][hand_ptype.toHandIndex()]--;
-
-      colors[color_index].set(m_to);
-      pieces[hand_ptype.toBitboardIndex()].set(m_to);
-      board_mailbox[m_to.raw] = Place{active_color, hand_ptype};
+      board_mailbox[m_to.raw] = Place{active_color, dest_ptype};
     }
 
     active_color = invert(active_color);
