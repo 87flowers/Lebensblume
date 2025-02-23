@@ -94,6 +94,39 @@ namespace lb::attacks {
       return Bitboard{(y & mask.raw) | ((static_cast<u128>(y >> 1) << 64) & mask.raw)};
     }
 
+    using BlockerArray = std::array<Bitboard, 81>;
+
+    inline consteval auto generatePotentialBlockers(Bitboard piece, auto directions) -> Bitboard {
+      Bitboard result{};
+      for (Direction dir : directions)
+        for (Bitboard current = piece.shift(dir); !current.shift(dir).empty(); current = current.shift(dir))
+          result |= current;
+      return result;
+    }
+
+    inline consteval auto generatePotentialBlockers(auto directions) -> BlockerArray {
+      BlockerArray result;
+      for (u8 i : std::views::iota(0, 81)) {
+        const Bitboard piece = Bitboard::fromSq(Square{i});
+        result[i] = generatePotentialBlockers(piece, directions);
+      }
+      return result;
+    }
+
+    inline consteval auto generateAttackCount(const BlockerArray &blocker_array) -> usize {
+      usize result = 0;
+      for (Bitboard b : blocker_array) {
+        const int count = std::popcount(compressBlockers(b));
+        result += 1 << count;
+      }
+      return result;
+    }
+
+    constexpr std::array<Direction, 4> bishop_dirs = {Direction::ne, Direction::se, Direction::sw, Direction::nw};
+    constexpr std::array<Direction, 4> rook_dirs = {Direction::n, Direction::e, Direction::s, Direction::w};
+    constexpr std::array<Direction, 1> lance_sente_dirs = {Direction::n};
+    constexpr std::array<Direction, 1> lance_gote_dirs = {Direction::s};
+
     extern const std::array<SliderTable, 81> bishop_lut;
     extern const std::array<SliderTable, 81> rook_lut;
     extern const std::array<std::array<SliderTable, 81>, 2> lance_lut;
