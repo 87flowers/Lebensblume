@@ -170,10 +170,11 @@ namespace lb {
   struct Bitboard {
     u128 raw = 0;
 
+    constexpr Bitboard() = default;
     explicit constexpr Bitboard(u128 raw) : raw(raw) {}
 
-    static constexpr auto rank(usize i) -> Bitboard { return Bitboard{0x1FF_u128 << (i * 9)}; }
-    static constexpr auto file(usize i) -> Bitboard { return Bitboard{0x001008040201008040201_u128 << i}; }
+    static constexpr auto rank(usize i) -> Bitboard { return Bitboard{rank_mask << (i * 9)}; }
+    static constexpr auto file(usize i) -> Bitboard { return Bitboard{file_mask << i}; }
     static constexpr auto rankRelative(usize i, Color perspective) -> Bitboard {
       switch (perspective) {
       case Color::sente:
@@ -187,6 +188,9 @@ namespace lb {
     static constexpr auto fromSq(Square sq) -> Bitboard { return Bitboard{1_u128 << sq.raw}; }
     constexpr auto toSq() const -> Square { return Square{narrow_cast<u8>(std::countr_zero(raw))}; }
 
+    inline constexpr auto empty() const -> bool { return raw == 0; }
+    inline constexpr auto count() const -> usize { return std::popcount(static_cast<u64>(raw)) + std::popcount(static_cast<u64>(raw >> 64)); }
+
     constexpr auto fillFiles() const -> Bitboard {
       u128 up = raw;
       u128 down = raw;
@@ -198,7 +202,7 @@ namespace lb {
       down |= down >> 36;
       up |= up << 72;
       down |= down >> 72;
-      return Bitboard{up | down};
+      return Bitboard{(up | down) & mask};
     }
 
     inline constexpr auto shift(Direction dir) const -> Bitboard {
@@ -270,6 +274,8 @@ namespace lb {
 
   private:
     inline static constexpr u128 mask = (1_u128 << 81) - 1;
+    inline static constexpr u128 file_mask = 0x001008040201008040201_u128;
+    inline static constexpr u128 rank_mask = 0x1FF_u128;
   }; // namespace lb
 
   inline constexpr auto operator&(Bitboard a, Bitboard b) -> Bitboard { return Bitboard{a.raw & b.raw}; }

@@ -20,10 +20,17 @@ include_directories(src)
 add_compile_options(-march=native)
 add_link_options(-march=native)
 add_compile_definitions(LB_VERSION="${CMAKE_PROJECT_VERSION}")
+if(CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
+  add_compile_options(-fconstexpr-ops-limit=1000000000)
+elseif(CMAKE_CXX_COMPILER_ID STREQUAL "Clang")
+  add_compile_options(-fconstexpr-steps=1000000000)
+endif()
+
 
 add_library(lb OBJECT
   src/lb/assert.cpp
   src/lb/assert.h
+  src/lb/attacks.cpp
   src/lb/attacks.h
   src/lb/bit.h
   src/lb/common.h

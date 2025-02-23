@@ -3,6 +3,7 @@
 #include <ranges>
 #include <utility>
 
+#include "lb/bit.h"
 #include "lb/common.h"
 
 namespace lb::attacks {
@@ -36,7 +37,7 @@ namespace lb::attacks {
     return result;
   }
 
-  constexpr auto allKings(Bitboard pieces, Color piece_color) -> Bitboard {
+  constexpr auto allKings(Bitboard pieces) -> Bitboard {
     Bitboard result{};
     result |= pieces.shift(Direction::n);
     result |= pieces.shift(Direction::ne);
@@ -66,11 +67,11 @@ namespace lb::attacks {
       return result;
     }
 
-    inline constexpr pawn = generateRelative(allPawns);
-    inline constexpr knight = generateRelative(allKnights);
-    inline constexpr silver = generateRelative(allSilvers);
-    inline constexpr gold = generateRelative(allGolds);
-    inline constexpr king = generate(allKings);
+    inline constexpr std::array<std::array<Bitboard, 81>, 2> pawn = generateRelative(allPawns);
+    inline constexpr std::array<std::array<Bitboard, 81>, 2> knight = generateRelative(allKnights);
+    inline constexpr std::array<std::array<Bitboard, 81>, 2> silver = generateRelative(allSilvers);
+    inline constexpr std::array<std::array<Bitboard, 81>, 2> gold = generateRelative(allGolds);
+    inline constexpr std::array<Bitboard, 81> king = generate(allKings);
 
   } // namespace table
 
@@ -79,5 +80,63 @@ namespace lb::attacks {
   inline constexpr auto silver(Square sq, Color piece_color) -> Bitboard { return table::silver[std::to_underlying(piece_color)][sq.raw]; }
   inline constexpr auto gold(Square sq, Color piece_color) -> Bitboard { return table::gold[std::to_underlying(piece_color)][sq.raw]; }
   inline constexpr auto king(Square sq) -> Bitboard { return table::king[sq.raw]; }
+
+  namespace sliders {
+
+    struct SliderTable {
+      Bitboard mask;
+      u64 compressed_mask;
+      const Bitboard *ptr;
+    };
+
+    inline constexpr auto compressBlockers(Bitboard bb) -> u64 { return static_cast<u64>(bb.raw) | ((bb.raw >> 64) << 1); }
+    inline constexpr auto decompressBlockers(u64 y, Bitboard mask) -> Bitboard {
+      return Bitboard{(y & mask.raw) | ((static_cast<u128>(y >> 1) << 64) & mask.raw)};
+    }
+
+    extern const std::array<SliderTable, 81> bishop_lut;
+    extern const std::array<SliderTable, 81> rook_lut;
+    extern const std::array<std::array<SliderTable, 81>, 2> lance_lut;
+
+  } // namespace sliders
+
+  inline constexpr auto bishop(Square sq, Bitboard blockers) -> Bitboard {
+    const sliders::SliderTable &t = sliders::bishop_lut[sq.raw];
+    usize index = pext(sliders::compressBlockers(blockers & t.mask), t.compressed_mask);
+    return t.ptr[index];
+  }
+
+  inline constexpr auto rook(Square sq, Bitboard blockers) -> Bitboard {
+    const sliders::SliderTable &t = sliders::rook_lut[sq.raw];
+    usize index = pext(sliders::compressBlockers(blockers & t.mask), t.compressed_mask);
+    return t.ptr[index];
+  }
+
+  inline constexpr auto lance(Square sq, Color piece_color, Bitboard blockers) -> Bitboard {
+    const sliders::SliderTable &t = sliders::lance_lut[std::to_underlying(piece_color)][sq.raw];
+    usize index = pext(sliders::compressBlockers(blockers & t.mask), t.compressed_mask);
+    return t.ptr[index];
+  }
+
+  constexpr auto allBishops(Bitboard pieces, Bitboard blockers) -> Bitboard {
+    Bitboard result{};
+    for (Square sq : pieces)
+      result |= bishop(sq, blockers);
+    return result;
+  }
+
+  constexpr auto allRooks(Bitboard pieces, Bitboard blockers) -> Bitboard {
+    Bitboard result{};
+    for (Square sq : pieces)
+      result |= rook(sq, blockers);
+    return result;
+  }
+
+  constexpr auto allLances(Bitboard pieces, Color piece_color, Bitboard blockers) -> Bitboard {
+    Bitboard result{};
+    for (Square sq : pieces)
+      result |= lance(sq, piece_color, blockers);
+    return result;
+  }
 
 } // namespace lb::attacks
