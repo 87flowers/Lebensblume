@@ -17,7 +17,7 @@ namespace lb::internal {
     lb::internal::die(std::source_location::current(), #expr __VA_OPT__(, __VA_ARGS__));
 
 namespace lb {
-  template <std::integral Dest> inline auto narrow_cast(std::integral auto src) -> Dest {
+  template <std::integral Dest> inline constexpr auto narrow_cast(std::integral auto src) -> Dest {
     static_assert(sizeof(Dest) < sizeof(decltype(src)));
     lb_assert(static_cast<Dest>(src) == src);
     return static_cast<Dest>(src);

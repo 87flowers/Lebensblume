@@ -50,6 +50,8 @@ namespace lb {
 
     constexpr Board() = default;
 
+    inline constexpr auto activeColor() const -> Color { return active_color; }
+
     inline constexpr auto getColor(Color color) const -> Bitboard { return colors[std::to_underlying(color)]; }
     inline constexpr auto getOccupied() const -> Bitboard { return colors[0] | colors[1]; }
     inline constexpr auto getPiece(Color color, PieceType ptype) const -> Bitboard {
@@ -59,7 +61,12 @@ namespace lb {
     inline constexpr auto getKingSq(Color color) const -> Square { return getKing(color).toSq(); }
     inline constexpr auto getPromoteds(Color color) const -> Bitboard { return colors[std::to_underlying(color)] & pieces.back(); }
 
+    inline constexpr auto getHand(Color color) const -> Hand { return hand[std::to_underlying(color)]; }
+
     inline constexpr auto isInCheck() const -> bool { return !checkers.empty(); }
+    inline constexpr auto getCheckers() const -> Bitboard { return checkers; }
+    inline constexpr auto getPinned() const -> Bitboard { return pinned; }
+    inline constexpr auto getDanger() const -> Bitboard { return danger; }
 
     inline auto move(Move m) const -> Board {
       Board result = *this;
@@ -90,14 +97,14 @@ namespace lb {
         -> std::expected<Board, ParseError>;
 
   private:
-    constexpr auto placeBoardFromParse(Color color, PieceType ptype, Square sq) -> void {
+    auto placeBoardFromParse(Color color, PieceType ptype, Square sq) -> void {
       const Bitboard bb = Bitboard::fromSq(sq);
       colors[std::to_underlying(color)] |= bb;
       pieces[ptype.toBitboardIndex()] |= bb;
       board_mailbox[sq.raw] = Place{color, ptype};
     }
 
-    constexpr auto placeHandFromParse(Color color, PieceType ptype, usize count) -> bool {
+    auto placeHandFromParse(Color color, PieceType ptype, usize count) -> bool {
       const std::array<usize, 8> max_count{{0, 18, 2, 2, 4, 4, 4, 4}};
       if (count > max_count[ptype.toHandIndex()] || count == 0)
         return false;

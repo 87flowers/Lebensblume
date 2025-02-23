@@ -4,9 +4,9 @@
 #include <ranges>
 
 #include "lb/assert.h"
-#include "lb/bit.h"
 #include "lb/common.h"
 #include "lb/types.h"
+#include "lb/util/pext.h"
 
 namespace lb::attacks::sliders {
   static consteval auto generateSliderTables(auto directions, const BlockerArray &blocker_array, const Bitboard *base_ptr)

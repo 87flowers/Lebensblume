@@ -13,6 +13,9 @@
 #include "lb/types.h"
 
 namespace lb {
+  constexpr usize max_legal_moves = 600;
+  constexpr usize max_search_ply = 128;
+
   enum class ParseError {
     invalid_char,
     invalid_length,
@@ -72,9 +75,6 @@ namespace lb {
 
     inline constexpr auto operator==(const PieceType &) const -> bool = default;
 
-    inline static constexpr std::string_view piece_order_sente{"PBRLNSGK"};
-    inline static constexpr std::string_view piece_order_gote{"pbrlnsgk"};
-
     inline static constexpr std::array<std::array<const char *, 15>, 2> en_strings{{
         {"-", "P", "B", "R", "L", "N", "S", "G", "K", "+P", "+B", "+R", "+L", "+N", "+S"},
         {"-", "p", "b", "r", "l", "n", "s", "g", "k", "+p", "+b", "+r", "+l", "+n", "+s"},
@@ -83,6 +83,22 @@ namespace lb {
         {"　", "歩", "角", "飛", "香", "桂", "銀", "金", "玉", "と", "馬", "龍", "杏", "圭", "全"},
         {"　", "歩", "角", "飛", "香", "桂", "銀", "金", "王", "と", "馬", "龍", "杏", "圭", "全"},
     }};
+
+    static constexpr auto parseSente(char ch) -> std::expected<PieceType, ParseError> {
+      constexpr std::string_view piece_order_sente{"PBRLNSGK"};
+      const usize pt = piece_order_sente.find(ch);
+      if (pt == std::string_view::npos)
+        return std::unexpected(ParseError::invalid_char);
+      return static_cast<Inner>(pt + 1);
+    }
+
+    static constexpr auto parseGote(char ch) -> std::expected<PieceType, ParseError> {
+      constexpr std::string_view piece_order_gote{"pbrlnsgk"};
+      const usize pt = piece_order_gote.find(ch);
+      if (pt == std::string_view::npos)
+        return std::unexpected(ParseError::invalid_char);
+      return static_cast<Inner>(pt + 1);
+    }
   };
 
   struct Square {
@@ -91,6 +107,16 @@ namespace lb {
     inline explicit constexpr Square(u8 raw) : raw(raw) { lb_assert(raw < 81); }
 
     inline static constexpr auto fromFileAndRank(usize file, usize rank) -> Square { return Square{narrow_cast<u8>(rank * 9 + file)}; }
+
+    inline constexpr auto isPromoSquare(Color color) const -> bool {
+      switch (color) {
+      case Color::sente:
+        return raw < 3 * 9;
+      case Color::gote:
+        return raw >= 6 * 9;
+      }
+      std::unreachable();
+    }
 
     static constexpr auto parse(std::string_view str) -> std::expected<Square, ParseError> {
       if (str.size() != 2)
@@ -128,19 +154,49 @@ namespace lb {
       result |= static_cast<u16>(ptype.raw) << 8;
       return Move{result};
     }
-    constexpr auto drop() -> bool { return (raw & drop_flag) != 0; }
-    constexpr auto to() -> Square { return Square{static_cast<u8>(raw & 0x7F)}; }
-    constexpr auto promo() -> bool {
+    constexpr auto drop() const -> bool { return (raw & drop_flag) != 0; }
+    constexpr auto to() const -> Square { return Square{static_cast<u8>(raw & 0x7F)}; }
+    constexpr auto promo() const -> bool {
       lb_assert(!drop());
       return static_cast<bool>(raw >> 15);
     }
-    constexpr auto from() -> Square {
+    constexpr auto from() const -> Square {
       lb_assert(!drop());
       return Square{static_cast<u8>((raw >> 8) & 0x7F)};
     }
-    constexpr auto ptype() -> PieceType {
+    constexpr auto ptype() const -> PieceType {
       lb_assert(drop());
       return PieceType{static_cast<PieceType::Inner>(raw >> 8)};
+    }
+
+    static constexpr auto parse(std::string_view str) -> std::expected<Move, ParseError> {
+      if (str.size() != 4 && str.size() != 5)
+        return std::unexpected(ParseError::invalid_length);
+
+      const auto to = Square::parse(str.substr(2, 2));
+      if (!to)
+        return std::unexpected(to.error());
+
+      if (str[1] == '*') {
+        if (str.size() != 4)
+          return std::unexpected(ParseError::invalid_length);
+
+        const auto ptype = PieceType::parseSente(str[0]);
+        if (!ptype || ptype.value() == PieceType::king)
+          return std::unexpected(ParseError::invalid_char);
+
+        return makeDrop(ptype.value(), to.value());
+      }
+
+      const bool promo = str.size() == 5;
+      if (promo && str[4] != '+')
+        return std::unexpected(ParseError::invalid_char);
+
+      const auto from = Square::parse(str.substr(0, 2));
+      if (!from)
+        return std::unexpected(from.error());
+
+      return makeMove(from.value(), to.value(), promo);
     }
 
     inline constexpr auto operator==(const Move &) const -> bool = default;
@@ -157,14 +213,25 @@ namespace lb {
     constexpr Bitboard() = default;
     explicit constexpr Bitboard(u128 raw) : raw(raw) {}
 
-    static constexpr auto rank(usize i) -> Bitboard { return Bitboard{rank_mask << (i * 9)}; }
-    static constexpr auto file(usize i) -> Bitboard { return Bitboard{file_mask << i}; }
-    static constexpr auto rankRelative(usize i, Color perspective) -> Bitboard {
+    inline static constexpr auto rank(usize i) -> Bitboard { return Bitboard{rank_mask << (i * 9)}; }
+    inline static constexpr auto file(usize i) -> Bitboard { return Bitboard{file_mask << i}; }
+    inline static constexpr auto rankRelative(usize i, Color perspective) -> Bitboard {
       switch (perspective) {
       case Color::sente:
         return rank(i);
       case Color::gote:
         return rank(8 - i);
+      }
+      std::unreachable();
+    }
+    inline static constexpr auto promoZone(Color perspective) -> Bitboard {
+      constexpr Bitboard sente_promo_zone{rank(0).raw | rank(1).raw | rank(2).raw};
+      constexpr Bitboard gote_promo_zone{rank(6).raw | rank(7).raw | rank(8).raw};
+      switch (perspective) {
+      case Color::sente:
+        return sente_promo_zone;
+      case Color::gote:
+        return gote_promo_zone;
       }
       std::unreachable();
     }
@@ -199,17 +266,17 @@ namespace lb {
       case Direction::s:
         return Bitboard{(raw << 9) & mask};
       case Direction::e:
-        return Bitboard{(raw & ~file(8).raw) >> 1};
+        return Bitboard{(raw & ~file(0).raw) >> 1};
       case Direction::w:
-        return Bitboard{((raw & ~file(0).raw) << 1) & mask};
+        return Bitboard{((raw & ~file(8).raw) << 1) & mask};
       case Direction::ne:
-        return Bitboard{(raw & ~file(8).raw) >> 10};
+        return Bitboard{(raw & ~file(0).raw) >> 10};
       case Direction::nw:
-        return Bitboard{(raw & ~file(0).raw) >> 8};
+        return Bitboard{(raw & ~file(8).raw) >> 8};
       case Direction::se:
-        return Bitboard{((raw & ~file(8).raw) << 8) & mask};
+        return Bitboard{((raw & ~file(0).raw) << 8) & mask};
       case Direction::sw:
-        return Bitboard{((raw & ~file(0).raw) << 10) & mask};
+        return Bitboard{((raw & ~file(8).raw) << 10) & mask};
       }
       std::unreachable();
     }

@@ -3,8 +3,8 @@
 #include <ranges>
 #include <utility>
 
-#include "lb/bit.h"
 #include "lb/common.h"
+#include "lb/util/pext.h"
 
 namespace lb::attacks {
   constexpr auto allPawns(Bitboard pieces, Color piece_color) -> Bitboard { return pieces.shiftRelative(Direction::n, piece_color); }

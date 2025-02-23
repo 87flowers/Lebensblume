@@ -158,27 +158,25 @@ namespace lb {
           if (spaces > file + 1)
             return std::unexpected(ParseError::invalid_char);
           place_index += spaces;
-        } else if (const usize pt = PieceType::piece_order_sente.find(ch); pt != std::string_view::npos) {
-          result.placeBoardFromParse(Color::sente, static_cast<PieceType::Inner>(pt + 1), sq);
+        } else if (const auto ptype = PieceType::parseSente(ch); ptype.has_value()) {
+          result.placeBoardFromParse(Color::sente, ptype.value(), sq);
           place_index++;
-        } else if (const usize pt = PieceType::piece_order_gote.find(ch); pt != std::string_view::npos) {
-          result.placeBoardFromParse(Color::gote, static_cast<PieceType::Inner>(pt + 1), sq);
+        } else if (const auto ptype = PieceType::parseGote(ch); ptype.has_value()) {
+          result.placeBoardFromParse(Color::gote, ptype.value(), sq);
           place_index++;
         } else if (ch == '+') {
           i++;
           if (i >= board_str.size())
             return std::unexpected(ParseError::invalid_length);
           const char ch2 = board_str[i];
-          if (const usize pt = PieceType::piece_order_sente.find(ch2); pt != std::string_view::npos) {
-            PieceType ptype = static_cast<PieceType::Inner>(pt + 1);
-            if (!ptype.promotable())
+          if (const auto ptype = PieceType::parseSente(ch2); ptype.has_value()) {
+            if (!ptype.value().promotable())
               return std::unexpected(ParseError::invalid_char);
-            result.placeBoardFromParse(Color::sente, ptype.promote(), sq);
-          } else if (const usize pt = PieceType::piece_order_gote.find(ch2); pt != std::string_view::npos) {
-            PieceType ptype = static_cast<PieceType::Inner>(pt + 1);
-            if (!ptype.promotable())
+            result.placeBoardFromParse(Color::sente, ptype.value().promote(), sq);
+          } else if (const auto ptype = PieceType::parseGote(ch2); ptype.has_value()) {
+            if (!ptype.value().promotable())
               return std::unexpected(ParseError::invalid_char);
-            result.placeBoardFromParse(Color::gote, ptype.promote(), sq);
+            result.placeBoardFromParse(Color::gote, ptype.value().promote(), sq);
           } else {
             return std::unexpected(ParseError::invalid_char);
           }
@@ -217,12 +215,12 @@ namespace lb {
           modifier = modifier.value_or(0) * 10 + (ch - '0');
           if (modifier.value() > 18)
             return std::unexpected(ParseError::out_of_range);
-        } else if (const usize pt = PieceType::piece_order_sente.find(ch); pt != std::string_view::npos && ch != 'K') {
-          if (!result.placeHandFromParse(Color::sente, static_cast<PieceType::Inner>(pt + 1), modifier.value_or(1)))
+        } else if (const auto ptype = PieceType::parseSente(ch); ptype && ptype != PieceType::king) {
+          if (!result.placeHandFromParse(Color::sente, ptype.value(), modifier.value_or(1)))
             return std::unexpected(ParseError::invalid_hand);
           modifier = std::nullopt;
-        } else if (const usize pt = PieceType::piece_order_gote.find(ch); pt != std::string_view::npos && ch != 'k') {
-          if (!result.placeHandFromParse(Color::gote, static_cast<PieceType::Inner>(pt + 1), modifier.value_or(1)))
+        } else if (const auto ptype = PieceType::parseGote(ch); ptype && ptype != PieceType::king) {
+          if (!result.placeHandFromParse(Color::gote, ptype.value(), modifier.value_or(1)))
             return std::unexpected(ParseError::invalid_hand);
           modifier = std::nullopt;
         } else {

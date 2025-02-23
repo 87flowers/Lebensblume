@@ -32,15 +32,21 @@ add_library(lb OBJECT
   src/lb/assert.h
   src/lb/attacks.cpp
   src/lb/attacks.h
-  src/lb/bit.h
   src/lb/board.cpp
   src/lb/board.h
   src/lb/common.h
+  src/lb/geometry.cpp
+  src/lb/geometry.h
+  src/lb/movegen.cpp
+  src/lb/movegen.h
   src/lb/tokenizer.h
   src/lb/types.h
+  src/lb/util/pext.h
+  src/lb/util/static_vector.h
 )
 
 add_executable(lebensblume src/main.cpp $<TARGET_OBJECTS:lb>)
 
 do_test(board)
 do_test(common)
+do_test(movegen)
