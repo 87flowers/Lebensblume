@@ -1,7 +1,7 @@
 #include <print>
 
-#include "lb/assert.h"
 #include "lb/common.h"
+#include "lb/util/assert.h"
 
 using namespace lb;
 

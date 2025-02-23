@@ -26,10 +26,7 @@ elseif(CMAKE_CXX_COMPILER_ID STREQUAL "Clang")
   add_compile_options(-fconstexpr-steps=1000000000)
 endif()
 
-
-add_library(lb OBJECT
-  src/lb/assert.cpp
-  src/lb/assert.h
+set(srcs
   src/lb/attacks.cpp
   src/lb/attacks.h
   src/lb/board.cpp
@@ -41,14 +38,18 @@ add_library(lb OBJECT
   src/lb/movegen.h
   src/lb/perft.cpp
   src/lb/perft.h
-  src/lb/tokenizer.h
   src/lb/types.h
+  src/lb/util/assert.cpp
+  src/lb/util/assert.h
   src/lb/util/pext.h
   src/lb/util/static_vector.h
+  src/lb/util/tokenizer.h
 )
 
-add_executable(lebensblume src/main.cpp $<TARGET_OBJECTS:lb>)
+add_executable(lebensblume src/main.cpp ${srcs})
+target_compile_options(lebensblume PUBLIC $<$<CONFIG:Release>:-DLB_NO_ASSERTS>)
 
+add_library(lb OBJECT ${srcs})
 do_test(board)
 do_test(common)
 do_test(movegen)

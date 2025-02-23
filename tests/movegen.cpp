@@ -2,10 +2,10 @@
 #include <tuple>
 #include <vector>
 
-#include "lb/assert.h"
 #include "lb/board.h"
 #include "lb/common.h"
 #include "lb/movegen.h"
+#include "lb/util/assert.h"
 
 using namespace lb;
 

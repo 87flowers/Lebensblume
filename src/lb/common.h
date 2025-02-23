@@ -9,8 +9,8 @@
 #include <string_view>
 #include <utility>
 
-#include "lb/assert.h"
 #include "lb/types.h"
+#include "lb/util/assert.h"
 
 namespace lb {
   constexpr usize max_legal_moves = 600;

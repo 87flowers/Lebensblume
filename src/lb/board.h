@@ -8,8 +8,8 @@
 #include <utility>
 
 #include "lb/common.h"
-#include "lb/tokenizer.h"
 #include "lb/types.h"
+#include "lb/util/tokenizer.h"
 
 namespace lb {
 

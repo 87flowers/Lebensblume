@@ -1,4 +1,4 @@
-#include "lb/assert.h"
+#include "lb/util/assert.h"
 
 #include <cstdio>
 #include <print>

@@ -3,9 +3,9 @@
 #include <array>
 #include <ranges>
 
-#include "lb/assert.h"
 #include "lb/common.h"
 #include "lb/types.h"
+#include "lb/util/assert.h"
 #include "lb/util/pext.h"
 
 namespace lb::attacks::sliders {

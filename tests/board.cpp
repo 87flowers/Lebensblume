@@ -4,8 +4,8 @@
 
 #include <print>
 
-#include "lb/assert.h"
 #include "lb/board.h"
+#include "lb/util/assert.h"
 
 using namespace lb;
 

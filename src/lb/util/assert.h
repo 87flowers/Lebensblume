@@ -12,9 +12,13 @@ namespace lb::internal {
   }
 } // namespace lb::internal
 
+#if LB_NO_ASSERTS
+#define lb_assert(expr, ...)
+#else
 #define lb_assert(expr, ...)                                                                                                                         \
   if (!(expr)) [[unlikely]]                                                                                                                          \
     lb::internal::die(std::source_location::current(), #expr __VA_OPT__(, __VA_ARGS__));
+#endif
 
 namespace lb {
   template <std::integral Dest> inline constexpr auto narrow_cast(std::integral auto src) -> Dest {

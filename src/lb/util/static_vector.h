@@ -2,8 +2,8 @@
 
 #include <array>
 
-#include "lb/assert.h"
 #include "lb/types.h"
+#include "lb/util/assert.h"
 
 namespace lb {
 
