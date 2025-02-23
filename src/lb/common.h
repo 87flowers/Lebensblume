@@ -54,18 +54,18 @@ namespace lb {
 
     /* implicit */ constexpr PieceType(Inner raw) : raw(raw) {}
 
-    inline constexpr auto promotable() -> bool { return raw >= pawn && raw <= silver; }
-    inline constexpr auto promoted() -> bool { return raw >= tokin; }
-    inline constexpr auto promote() -> PieceType {
+    inline constexpr auto promotable() const -> bool { return raw >= pawn && raw <= silver; }
+    inline constexpr auto promoted() const -> bool { return raw >= tokin; }
+    inline constexpr auto promote() const -> PieceType {
       lb_assert(raw != none && raw != gold);
       return PieceType{static_cast<Inner>(raw | 0x8)};
     }
-    inline constexpr auto demote() -> PieceType { return promoted() ? PieceType{static_cast<Inner>(raw & 0x7)} : *this; }
-    inline constexpr auto toBitboardIndex() -> usize {
+    inline constexpr auto demote() const -> PieceType { return promoted() ? PieceType{static_cast<Inner>(raw & 0x7)} : *this; }
+    inline constexpr auto toBitboardIndex() const -> usize {
       lb_assert(raw != none);
       return std::min<usize>(bitboard_count, raw) - 1;
     }
-    inline constexpr auto toHandIndex() -> usize {
+    inline constexpr auto toHandIndex() const -> usize {
       lb_assert(raw != none && raw < king);
       return static_cast<usize>(raw);
     }
@@ -174,6 +174,9 @@ namespace lb {
 
     inline constexpr auto empty() const -> bool { return raw == 0; }
     inline constexpr auto count() const -> usize { return std::popcount(static_cast<u64>(raw)) + std::popcount(static_cast<u64>(raw >> 64)); }
+
+    inline constexpr auto clear(Square sq) -> void { raw &= ~fromSq(sq).raw; }
+    inline constexpr auto set(Square sq) -> void { raw |= fromSq(sq).raw; }
 
     constexpr auto fillFiles() const -> Bitboard {
       u128 up = raw;

@@ -7,7 +7,50 @@ namespace lb {
 
   const Board Board::startpos = Board::parse("lnsgkgsnl/1r5b1/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL b - 1").value();
 
-  auto Board::moveNoPrecompute(Move m) -> void {}
+  auto Board::moveNoPrecompute(Move m) -> void {
+    const usize color_index = std::to_underlying(active_color);
+    const Square m_to = m.to();
+
+    if (m.drop()) {
+      const Square m_from = m.from();
+
+      const Place src = board_mailbox[m_from.raw];
+      lb_assert(src.color() == active_color && src.ptype() != PieceType::none);
+
+      colors[color_index].clear(m_from);
+      pieces[src.ptype().toBitboardIndex()].clear(m_from);
+      board_mailbox[m_from.raw] = Place{};
+
+      // Is this a capture?
+      if (!board_mailbox[m_to.raw].empty()) {
+        const Place captured = board_mailbox[m_to.raw];
+        lb_assert(captured.color() != active_color && captured.ptype() != PieceType::none);
+
+        colors[!color_index].clear(m_to);
+        pieces[captured.ptype().toBitboardIndex()].clear(m_to);
+
+        const PieceType hand_ptype = captured.ptype().demote();
+        hand[color_index][0] |= 1 << hand_ptype.toHandIndex();
+        hand[color_index][hand_ptype.toHandIndex()]++;
+      }
+
+      const PieceType dest_ptype = m.promo() ? src.ptype().promote() : src.ptype();
+      colors[color_index].set(m_to);
+      pieces[dest_ptype.toBitboardIndex()].set(m_to);
+    } else {
+      const PieceType hand_ptype = m.ptype();
+
+      hand[color_index][0] &= ~(1 << hand_ptype.toHandIndex());
+      hand[color_index][hand_ptype.toHandIndex()]--;
+
+      colors[color_index].set(m_to);
+      pieces[hand_ptype.toBitboardIndex()].set(m_to);
+      board_mailbox[m_to.raw] = Place{active_color, hand_ptype};
+    }
+
+    active_color = invert(active_color);
+    ply += 1;
+  }
 
   auto Board::precompute() -> void {
     const Color friendly_color = active_color;
