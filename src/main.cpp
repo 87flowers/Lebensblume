@@ -1,13 +1,30 @@
+#include <cstdio>
+#include <iostream>
 #include <print>
+#include <ranges>
 
-#include "lb/board.h"
-#include "lb/perft.h"
+#include "lb/game.h"
+#include "lb/usi.h"
 
-auto main() -> int {
+auto main(int argc, char *argv[]) -> int {
   std::print("# Lebensblume {}\n", LB_VERSION);
 #if LB_NO_ASSERTS
   std::print("# Assertions disabled\n");
 #endif
-  lb::perft::run(lb::Board::parse("l6nl/5+P1gk/2np1S3/p1p4Pp/3P2Sp1/1PPb2P1P/P5GS1/R8/LN4bKL w RGgsn5p 1").value(), 5);
+  std::fflush(stdout);
+
+  lb::Game game;
+
+  if (argc > 1) {
+    for (lb::usize i : std::views::iota(1, argc)) {
+      lb::usiParseCommand(game, argv[i]);
+    }
+    return 0;
+  }
+
+  std::string line;
+  while (std::getline(std::cin, line)) {
+    lb::usiParseCommand(game, line);
+  }
   return 0;
 }

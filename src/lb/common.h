@@ -340,6 +340,28 @@ namespace lb {
   inline constexpr auto operator^(Bitboard a, Bitboard b) -> Bitboard { return Bitboard{a.raw ^ b.raw}; }
 } // namespace lb
 
+template <> struct std::formatter<lb::ParseError, char> {
+  template <class ParseContext> constexpr auto parse(ParseContext &ctx) -> ParseContext::iterator { return ctx.begin(); }
+
+  template <class FmtContext> auto format(lb::ParseError err, FmtContext &ctx) const -> FmtContext::iterator {
+    switch (err) {
+    case lb::ParseError::invalid_char:
+      return std::format_to(ctx.out(), "invalid_char");
+    case lb::ParseError::invalid_length:
+      return std::format_to(ctx.out(), "invalid_length");
+    case lb::ParseError::out_of_range:
+      return std::format_to(ctx.out(), "out_of_range");
+    case lb::ParseError::invalid_hand:
+      return std::format_to(ctx.out(), "invalid_hand");
+    case lb::ParseError::invalid_board:
+      return std::format_to(ctx.out(), "invalid_board");
+    case lb::ParseError::too_many_kings:
+      return std::format_to(ctx.out(), "too_many_kings");
+    }
+    std::unreachable();
+  }
+};
+
 template <> struct std::formatter<lb::Color, char> {
   template <class ParseContext> constexpr auto parse(ParseContext &ctx) -> ParseContext::iterator { return ctx.begin(); }
 

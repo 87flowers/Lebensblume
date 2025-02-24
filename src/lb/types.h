@@ -28,6 +28,8 @@ namespace lb {
     using Duration = TimePoint::duration;
     using FloatSeconds = std::chrono::duration<double>;
     using Milliseconds = std::chrono::duration<i64, std::milli>;
+
+    template <typename T> constexpr auto cast(const auto &d) -> T { return std::chrono::duration_cast<T>(d); }
   } // namespace time
 
   namespace internal {

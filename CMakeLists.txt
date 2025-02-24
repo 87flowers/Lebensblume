@@ -32,6 +32,7 @@ set(srcs
   src/lb/board.cpp
   src/lb/board.h
   src/lb/common.h
+  src/lb/game.h
   src/lb/geometry.cpp
   src/lb/geometry.h
   src/lb/movegen.cpp
@@ -39,6 +40,8 @@ set(srcs
   src/lb/perft.cpp
   src/lb/perft.h
   src/lb/types.h
+  src/lb/usi.cpp
+  src/lb/usi.h
   src/lb/util/assert.cpp
   src/lb/util/assert.h
   src/lb/util/pext.h
