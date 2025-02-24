@@ -1,5 +1,6 @@
 #pragma once
 
+#include <chrono>
 #include <cstddef>
 #include <cstdint>
 
@@ -20,6 +21,14 @@ namespace lb {
 
   using f32 = float;
   using f64 = double;
+
+  namespace time {
+    using Clock = std::chrono::steady_clock;
+    using TimePoint = std::chrono::time_point<Clock>;
+    using Duration = TimePoint::duration;
+    using FloatSeconds = std::chrono::duration<double>;
+    using Milliseconds = std::chrono::duration<i64, std::milli>;
+  } // namespace time
 
   namespace internal {
     inline constexpr auto digitValue(char c) -> u8 {

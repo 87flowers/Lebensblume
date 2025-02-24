@@ -1,6 +1,5 @@
 #include "lb/perft.h"
 
-#include <chrono>
 #include <print>
 
 #include "lb/board.h"
@@ -37,11 +36,11 @@ namespace lb::perft {
   auto value(const Board &board, usize depth) -> usize { return core<false>(board, depth); }
 
   auto run(const Board &board, usize depth) -> void {
-    const auto start = std::chrono::steady_clock::now();
+    const auto start = time::Clock::now();
     const usize total = core<true>(board, depth);
-    const auto end = std::chrono::steady_clock::now();
+    const auto end = time::Clock::now();
 
-    const std::chrono::duration<double> elapsed = end - start;
+    const time::FloatSeconds elapsed = end - start;
 
     std::print("total: {}\n", total);
     std::print("perft to depth {} complete in {:.1f}ms ({:.1f} Mnps)\n", depth, elapsed.count() * 1000, total / (1'000'000 * elapsed.count()));
