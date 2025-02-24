@@ -84,14 +84,25 @@ namespace lb::attacks {
   namespace sliders {
 
     struct SliderTable {
-      Bitboard mask;
-      u64 compressed_mask;
-      const Bitboard *ptr;
+      Bitboard blocker_mask;
+      u64 attack_mask;
+      const u32 *ptr;
     };
 
     inline constexpr auto compressBlockers(Bitboard bb) -> u64 { return static_cast<u64>(bb.raw) | ((bb.raw >> 64) << 1); }
     inline constexpr auto decompressBlockers(u64 y, Bitboard mask) -> Bitboard {
       return Bitboard{(y & mask.raw) | ((static_cast<u128>(y >> 1) << 64) & mask.raw)};
+    }
+    inline constexpr auto compressAttacks(Bitboard bb, u64 mask) -> u32 {
+      const u32 upper = static_cast<u32>(bb.raw >> 64) << 15;
+      const u32 lower = static_cast<u32>(pext(static_cast<u64>(bb.raw), mask));
+      lb_assert((lower & 0x7FFF) == lower);
+      return upper | lower;
+    }
+    inline constexpr auto decompressAttacks(u32 x, u64 mask) -> Bitboard {
+      const u128 upper = static_cast<u128>(x >> 15) << 64;
+      const u128 lower = pdep(x & 0x7FFF, mask);
+      return Bitboard{upper | lower};
     }
 
     using BlockerArray = std::array<Bitboard, 81>;
@@ -135,20 +146,20 @@ namespace lb::attacks {
 
   inline constexpr auto bishop(Square sq, Bitboard blockers) -> Bitboard {
     const sliders::SliderTable &t = sliders::bishop_lut[sq.raw];
-    usize index = pext(sliders::compressBlockers(blockers & t.mask), t.compressed_mask);
-    return t.ptr[index];
+    const usize index = pext(sliders::compressBlockers(blockers & t.blocker_mask), sliders::compressBlockers(t.blocker_mask));
+    return sliders::decompressAttacks(t.ptr[index], t.attack_mask);
   }
 
   inline constexpr auto rook(Square sq, Bitboard blockers) -> Bitboard {
     const sliders::SliderTable &t = sliders::rook_lut[sq.raw];
-    usize index = pext(sliders::compressBlockers(blockers & t.mask), t.compressed_mask);
-    return t.ptr[index];
+    const usize index = pext(sliders::compressBlockers(blockers & t.blocker_mask), sliders::compressBlockers(t.blocker_mask));
+    return sliders::decompressAttacks(t.ptr[index], t.attack_mask);
   }
 
   inline constexpr auto lance(Square sq, Color piece_color, Bitboard blockers) -> Bitboard {
     const sliders::SliderTable &t = sliders::lance_lut[std::to_underlying(piece_color)][sq.raw];
-    usize index = pext(sliders::compressBlockers(blockers & t.mask), t.compressed_mask);
-    return t.ptr[index];
+    const usize index = pext(sliders::compressBlockers(blockers & t.blocker_mask), sliders::compressBlockers(t.blocker_mask));
+    return sliders::decompressAttacks(t.ptr[index], t.attack_mask);
   }
 
   constexpr auto allBishops(Bitboard pieces, Bitboard blockers) -> Bitboard {
