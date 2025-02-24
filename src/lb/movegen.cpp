@@ -29,6 +29,7 @@ namespace lb::movegen {
     switch (ptype.raw) {
     case PieceType::none:
       lb_assert(false);
+      return Bitboard{};
     case PieceType::pawn:
     case PieceType::lance:
       return ~Bitboard::rankRelative(0, active_color);

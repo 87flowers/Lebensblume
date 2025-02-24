@@ -10,6 +10,7 @@
 #include "lb/common.h"
 #include "lb/types.h"
 #include "lb/util/tokenizer.h"
+#include "lb/zhash.h"
 
 namespace lb {
 
@@ -45,6 +46,8 @@ namespace lb {
     Bitboard pinned;
     Bitboard danger;
 
+    zhash::Hash hash;
+
   public:
     static const Board startpos;
 
@@ -67,6 +70,7 @@ namespace lb {
     inline constexpr auto getCheckers() const -> Bitboard { return checkers; }
     inline constexpr auto getPinned() const -> Bitboard { return pinned; }
     inline constexpr auto getDanger() const -> Bitboard { return danger; }
+    inline constexpr auto getHash() const -> zhash::Hash { return hash; }
 
     inline auto move(Move m) const -> Board {
       Board result = *this;
@@ -81,6 +85,8 @@ namespace lb {
     auto getAllNonKingAttackers(Square sq, Color attacker_color) const -> Bitboard;
     auto getPinned(Color king_color) const -> Bitboard;
     auto getAttackMap(Color attacker_color) const -> Bitboard;
+
+    auto calcHashSlow() const -> zhash::Hash;
 
     static auto parse(std::string_view str) -> std::expected<Board, ParseError> {
       Tokenizer it{str};

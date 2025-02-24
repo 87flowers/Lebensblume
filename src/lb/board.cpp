@@ -1,7 +1,10 @@
 #include "lb/board.h"
 
+#include <ranges>
+
 #include "lb/attacks.h"
 #include "lb/common.h"
+#include "lb/zhash.h"
 
 namespace lb {
 
@@ -14,13 +17,18 @@ namespace lb {
     if (m.drop()) {
       const PieceType hand_ptype = m.ptype();
 
-      const u8 remaining_in_hand = --hand[color_index][hand_ptype.toHandIndex()];
-      if (remaining_in_hand == 0)
+      const u8 was_in_hand = hand[color_index][hand_ptype.toHandIndex()]--;
+      lb_assert(was_in_hand > 0);
+      if (was_in_hand == 1)
         hand[color_index][0] &= ~(1 << hand_ptype.toHandIndex());
+
+      hash ^= zhash::handIncremental(active_color, hand_ptype, was_in_hand);
 
       colors[color_index].set(m_to);
       pieces[hand_ptype.toBitboardIndex()].set(m_to);
       board_mailbox[m_to.raw] = Place{active_color, hand_ptype};
+
+      hash ^= zhash::board(active_color, hand_ptype, m_to);
     } else {
       const Square m_from = m.from();
 
@@ -31,6 +39,8 @@ namespace lb {
       pieces[src.ptype().toBitboardIndex()].clear(m_from);
       board_mailbox[m_from.raw] = Place{};
 
+      hash ^= zhash::board(active_color, src.ptype(), m_from);
+
       // Is this a capture?
       if (!board_mailbox[m_to.raw].empty()) {
         const Place captured = board_mailbox[m_to.raw];
@@ -39,19 +49,28 @@ namespace lb {
         colors[!color_index].clear(m_to);
         pieces[captured.ptype().toBitboardIndex()].clear(m_to);
 
+        hash ^= zhash::board(captured.color(), captured.ptype(), m_to);
+
         const PieceType hand_ptype = captured.ptype().demote();
         hand[color_index][0] |= 1 << hand_ptype.toHandIndex();
-        hand[color_index][hand_ptype.toHandIndex()]++;
+        const u8 now_in_hand = ++hand[color_index][hand_ptype.toHandIndex()];
+
+        hash ^= zhash::handIncremental(active_color, hand_ptype, now_in_hand);
       }
 
       const PieceType dest_ptype = m.promo() ? src.ptype().promote() : src.ptype();
       colors[color_index].set(m_to);
       pieces[dest_ptype.toBitboardIndex()].set(m_to);
       board_mailbox[m_to.raw] = Place{active_color, dest_ptype};
+
+      hash ^= zhash::board(active_color, dest_ptype, m_to);
     }
 
     active_color = invert(active_color);
+    hash ^= zhash::move;
     ply += 1;
+
+    lb_assert(hash == calcHashSlow(), "{} {} {:x} {:x} {:x}", *this, m, hash, calcHashSlow(), hash ^ calcHashSlow());
   }
 
   auto Board::precompute() -> void {
@@ -137,6 +156,29 @@ namespace lb {
     result |= attacks::allLances(getPiece(attacker_color, PieceType::lance), attacker_color, occupied);
     result |= attacks::allKnights(getPiece(attacker_color, PieceType::knight), attacker_color);
     result |= attacks::allSilvers(getPiece(attacker_color, PieceType::silver), attacker_color);
+    return result;
+  }
+
+  auto Board::calcHashSlow() const -> zhash::Hash {
+    zhash::Hash result = 0;
+    for (u8 i : std::views::iota(0, 81)) {
+      const Square sq{i};
+      const Place &place = board_mailbox[i];
+      if (!place.empty()) {
+        result ^= zhash::board(place.color(), place.ptype(), sq);
+      }
+    }
+    for (usize c : std::views::iota(0, 2)) {
+      for (usize pt : std::views::iota(1, 8)) {
+        const Color color = static_cast<Color>(c);
+        const PieceType ptype = static_cast<PieceType::Inner>(pt);
+        const usize count = hand[c][pt];
+        result ^= zhash::hand(color, ptype, count);
+      }
+    }
+    if (active_color == Color::gote) {
+      result ^= zhash::move;
+    }
     return result;
   }
 
@@ -245,6 +287,7 @@ namespace lb {
       return std::unexpected(ParseError::too_many_kings);
 
     result.precompute();
+    result.hash = result.calcHashSlow();
 
     return result;
   }

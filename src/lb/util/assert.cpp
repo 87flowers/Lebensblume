@@ -16,4 +16,6 @@ namespace lb::internal {
     std::print(stderr, "\n");
     std::terminate();
   }
+
+  auto vdbg(std::string_view fmt, std::format_args args) -> void { std::vprint_unicode(stderr, fmt, args); }
 } // namespace lb::internal

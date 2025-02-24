@@ -10,6 +10,8 @@ namespace lb::internal {
   template <typename... Args> inline auto die(std::source_location location, std::string_view expr, std::string_view fmt, Args &&...args) -> void {
     vdie(location, expr, fmt, std::make_format_args(args...));
   }
+  auto vdbg(std::string_view fmt, std::format_args args) -> void;
+  template <typename... Args> auto dbg(std::string_view fmt, Args &&...args) -> void { vdbg(fmt, std::make_format_args(args...)); }
 } // namespace lb::internal
 
 #if LB_NO_ASSERTS
@@ -19,6 +21,8 @@ namespace lb::internal {
   if (!(expr)) [[unlikely]]                                                                                                                          \
     lb::internal::die(std::source_location::current(), #expr __VA_OPT__(, __VA_ARGS__));
 #endif
+
+#define lb_dbg(...) lb::internal::dbg(__VA_ARGS__);
 
 namespace lb {
   template <std::integral Dest> inline constexpr auto narrow_cast(std::integral auto src) -> Dest {

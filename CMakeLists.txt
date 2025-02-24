@@ -44,6 +44,7 @@ set(srcs
   src/lb/util/pext.h
   src/lb/util/static_vector.h
   src/lb/util/tokenizer.h
+  src/lb/zhash.h
 )
 
 add_executable(lebensblume src/main.cpp ${srcs})
