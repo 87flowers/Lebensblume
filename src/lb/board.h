@@ -84,7 +84,9 @@ namespace lb {
 
     auto getAllNonKingAttackers(Square sq, Color attacker_color) const -> Bitboard;
     auto getPinned(Color king_color) const -> Bitboard;
+    auto getPinnedWithExtraAttackerPawns(Color king_color, Bitboard extra_pawns) const -> Bitboard;
     auto getAttackMap(Color attacker_color) const -> Bitboard;
+    auto getAttackMapWithExtraAttackerPawns(Color attacker_color, Bitboard extra_pawns) const -> Bitboard;
 
     auto calcHashSlow() const -> zhash::Hash;
 

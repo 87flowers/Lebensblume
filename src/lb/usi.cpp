@@ -110,6 +110,8 @@ namespace lb {
       usiParsePosition(game, it);
     } else if (cmd == "perft") {
       usiParsePerft(game, it);
+    } else if (cmd == "quit") {
+      std::exit(0);
     } else {
       printProtocolError(cmd, "unknown command");
     }

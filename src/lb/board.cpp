@@ -103,7 +103,9 @@ namespace lb {
     return result;
   }
 
-  auto Board::getPinned(Color king_color) const -> Bitboard {
+  auto Board::getPinned(Color king_color) const -> Bitboard { return getPinnedWithExtraAttackerPawns(king_color, Bitboard{}); }
+
+  auto Board::getPinnedWithExtraAttackerPawns(Color king_color, Bitboard extra_pawns) const -> Bitboard {
     const Color friendly_color = king_color;
     const Color enemy_color = invert(king_color);
 
@@ -111,7 +113,7 @@ namespace lb {
     const Square friendly_king_sq = friendly_king.toSq();
 
     const Bitboard friendly = getColor(friendly_color);
-    const Bitboard enemy = getColor(enemy_color);
+    const Bitboard enemy = getColor(enemy_color) | extra_pawns;
 
     const Bitboard orthogonals = getPiece(enemy_color, PieceType::rook) | getPiece(enemy_color, PieceType::dragon);
     const Bitboard diagonals = getPiece(enemy_color, PieceType::bishop) | getPiece(enemy_color, PieceType::horse);
@@ -139,8 +141,10 @@ namespace lb {
     return result;
   }
 
-  auto Board::getAttackMap(Color attacker_color) const -> Bitboard {
-    const Bitboard occupied = getOccupied() & ~getKing(invert(attacker_color));
+  auto Board::getAttackMap(Color attacker_color) const -> Bitboard { return getAttackMapWithExtraAttackerPawns(attacker_color, Bitboard{}); }
+
+  auto Board::getAttackMapWithExtraAttackerPawns(Color attacker_color, Bitboard extra_pawns) const -> Bitboard {
+    const Bitboard occupied = (getOccupied() & ~getKing(invert(attacker_color))) | extra_pawns;
 
     const Bitboard orthogonals = getPiece(attacker_color, PieceType::rook) | getPiece(attacker_color, PieceType::dragon);
     const Bitboard diagonals = getPiece(attacker_color, PieceType::bishop) | getPiece(attacker_color, PieceType::horse);
@@ -152,7 +156,7 @@ namespace lb {
     result |= attacks::allBishops(diagonals, occupied);
     result |= attacks::allKings(rings | getKing(attacker_color));
     result |= attacks::allGolds(golds, attacker_color);
-    result |= attacks::allPawns(getPiece(attacker_color, PieceType::pawn), attacker_color);
+    result |= attacks::allPawns(getPiece(attacker_color, PieceType::pawn) | extra_pawns, attacker_color);
     result |= attacks::allLances(getPiece(attacker_color, PieceType::lance), attacker_color, occupied);
     result |= attacks::allKnights(getPiece(attacker_color, PieceType::knight), attacker_color);
     result |= attacks::allSilvers(getPiece(attacker_color, PieceType::silver), attacker_color);

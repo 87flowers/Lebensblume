@@ -152,12 +152,12 @@ namespace lb::movegen {
   auto isUchifuzume(const Board &board, Square enemy_king, Bitboard drop_bb) -> bool {
     const Color enemy_color = invert(board.activeColor());
     const Bitboard pawn_attackers = board.getAllNonKingAttackers(drop_bb.toSq(), enemy_color);
-    const Bitboard nonpinned_pawn_attackers = pawn_attackers & ~board.getPinned(enemy_color);
+    const Bitboard nonpinned_pawn_attackers = pawn_attackers & ~board.getPinnedWithExtraAttackerPawns(enemy_color, drop_bb);
     if (!nonpinned_pawn_attackers.empty())
       return false;
 
     const Bitboard ring = attacks::king(enemy_king);
-    const Bitboard attack_map = board.getAttackMap(board.activeColor()) | board.getColor(enemy_color);
+    const Bitboard attack_map = board.getAttackMapWithExtraAttackerPawns(board.activeColor(), drop_bb) | board.getColor(enemy_color);
     return (attack_map & ring) == ring;
   }
 
