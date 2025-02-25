@@ -19,6 +19,7 @@ auto main() -> int {
       {"l6nl/5+P1gk/2np1S3/p1p4Pp/3P2Sp1/1PPb2P1P/P5GS1/R2g2K2/LN4b1L w RGsn5p 3", {1, 160, 20791, 2685299, 266976811}},
       {"lnsgkgsnl/1r5b1/9/9/9/9/9/1B5R1/LNSGKGSNL b 9P9p 1", {1, 119, 13311, 1473109, 158016152, 16926756694}},
       {"kl7/1p7/9/9/9/9/9/7P1/7LK b RB2G2S2N2L8Prb2g2s2nl8p 1", {1, 492, 229547, 102542667, 44412565396}},
+      {"ppplkl1pp/b2p1p3/9/9/9/B8/9/5P1P1/PPPP1LKLP b R2G2S2N2Pr2g2s2n2p 1", {1, 260, 62558, 14650255, 3356390740}},
   }};
 
   for (auto [sfen, expected_results] : cases) {
