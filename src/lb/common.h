@@ -25,12 +25,12 @@ namespace lb {
     too_many_kings,
   };
 
-  enum class Color {
+  enum class Color : bool {
     sente = 0,
     gote = 1,
   };
 
-  inline constexpr auto invert(Color c) -> Color { return c == Color::sente ? Color::gote : Color::sente; }
+  inline constexpr auto invert(Color c) -> Color { return static_cast<Color>(!std::to_underlying(c)); }
 
   struct PieceType {
     enum Inner : u8 {
