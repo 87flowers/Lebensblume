@@ -17,7 +17,9 @@ namespace lb {
   using i64 = std::int64_t;
   using i128 = __int128;
 
+  using isize = std::intptr_t;
   using usize = std::size_t;
+  static_assert(sizeof(isize) == sizeof(usize));
 
   using f32 = float;
   using f64 = double;
@@ -52,6 +54,7 @@ namespace lb {
         T next_result = result * base + digit;
         if (next_result < result)
           throw "integer overflow";
+        result = next_result;
         x++;
       }
       return result;

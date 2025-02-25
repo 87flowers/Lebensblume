@@ -32,6 +32,7 @@ set(srcs
   src/lb/board.cpp
   src/lb/board.h
   src/lb/common.h
+  src/lb/game.cpp
   src/lb/game.h
   src/lb/geometry.cpp
   src/lb/geometry.h

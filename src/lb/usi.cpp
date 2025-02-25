@@ -64,8 +64,7 @@ namespace lb {
       const auto m = Move::parse(move_str);
       if (!m)
         return printIllegalMove(move_str);
-      // TODO: game.move
-      game.position = game.position.move(m.value());
+      game.move(m.value());
     }
   }
 
@@ -75,7 +74,7 @@ namespace lb {
       return printProtocolError("position", "no position provided");
 
     if (pos_type == "startpos") {
-      game.position = Board::startpos;
+      game.setPositionStartpos();
     } else if (pos_type == "sfen") {
       const std::string_view board_str = it.next();
       const std::string_view color_str = it.next();
@@ -84,7 +83,7 @@ namespace lb {
       const auto pos = Board::parse(board_str, color_str, hand_str, ply_str);
       if (!pos)
         return printProtocolError("position", "invalid sfen provided: {}", pos.error());
-      game.position = pos.value();
+      game.setPosition(pos.value());
     } else {
       return printUnrecognizedToken("position", pos_type);
     }
@@ -99,7 +98,7 @@ namespace lb {
     const auto depth = parseInt(depth_str);
     if (!depth || *depth < 0)
       return printUnrecognizedToken("perft", depth_str);
-    perft::run(game.position, static_cast<usize>(*depth));
+    perft::run(game.position(), static_cast<usize>(*depth));
   }
 
   auto usiParseCommand(Game &game, std::string_view line) -> void {

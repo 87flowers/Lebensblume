@@ -35,18 +35,25 @@ namespace lb {
 
     using Hand = std::array<u8, 8>;
 
-    std::array<Bitboard, 2> colors;
-    std::array<Bitboard, PieceType::bitboard_count> pieces;
-    std::array<Place, 81> board_mailbox;
-    std::array<Hand, 2> hand;
-    Color active_color;
-    u16 ply;
+    std::array<Bitboard, 2> colors{};
+    std::array<Bitboard, PieceType::bitboard_count> pieces{};
+    std::array<Place, 81> board_mailbox{};
+    std::array<Hand, 2> hand{};
+    Color active_color{};
+    u16 ply{};
 
-    Bitboard checkers;
-    Bitboard pinned;
-    Bitboard danger;
+    // Number of two-plys ago color was not checked.
+    //     if non_check_clock[0] == 0, then gote's most recent move did not check sente
+    //     if non_check_clock[0] == 1, gote's most recent move checked sente.
+    //     if non_check_clock[0] == 2 and active_color == sente, then previous moves were:
+    //         [gote checked sente] [sente move] [gote checked sente] <sente to move>
+    std::array<u16, 2> non_check_clock{};
 
-    zhash::Hash hash;
+    Bitboard checkers{};
+    Bitboard pinned{};
+    Bitboard danger{};
+
+    zhash::Hash hash{};
 
   public:
     static const Board startpos;
@@ -54,6 +61,7 @@ namespace lb {
     constexpr Board() = default;
 
     inline constexpr auto activeColor() const -> Color { return active_color; }
+    inline constexpr auto nonCheckClock(Color color) const -> u16 { return non_check_clock[std::to_underlying(color)]; }
 
     inline constexpr auto getColor(Color color) const -> Bitboard { return colors[std::to_underlying(color)]; }
     inline constexpr auto getOccupied() const -> Bitboard { return colors[0] | colors[1]; }
@@ -105,23 +113,8 @@ namespace lb {
         -> std::expected<Board, ParseError>;
 
   private:
-    auto placeBoardFromParse(Color color, PieceType ptype, Square sq) -> void {
-      const Bitboard bb = Bitboard::fromSq(sq);
-      colors[std::to_underlying(color)] |= bb;
-      pieces[ptype.toBitboardIndex()] |= bb;
-      board_mailbox[sq.raw] = Place{color, ptype};
-    }
-
-    auto placeHandFromParse(Color color, PieceType ptype, usize count) -> bool {
-      const std::array<usize, 8> max_count{{0, 18, 2, 2, 4, 4, 4, 4}};
-      if (count > max_count[ptype.toHandIndex()] || count == 0)
-        return false;
-      if (hand[std::to_underlying(color)][ptype.toHandIndex()] != 0)
-        return false;
-      hand[std::to_underlying(color)][0] |= 1 << ptype.toHandIndex();
-      hand[std::to_underlying(color)][ptype.toHandIndex()] = static_cast<u8>(count);
-      return true;
-    }
+    auto placeBoardFromParse(Color color, PieceType ptype, Square sq) -> void;
+    auto placeHandFromParse(Color color, PieceType ptype, usize count) -> bool;
   };
 
 } // namespace lb

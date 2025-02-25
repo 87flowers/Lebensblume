@@ -70,6 +70,13 @@ namespace lb {
     hash ^= zhash::move;
     ply += 1;
 
+    checkers = getAllNonKingAttackers(getKingSq(active_color), invert(active_color));
+    if (checkers.empty()) {
+      non_check_clock[std::to_underlying(active_color)] = 0;
+    } else {
+      non_check_clock[std::to_underlying(active_color)] += 1;
+    }
+
     lb_assert(hash == calcHashSlow(), "{} {} {:x} {:x} {:x}", *this, m, hash, calcHashSlow(), hash ^ calcHashSlow());
   }
 
@@ -77,7 +84,6 @@ namespace lb {
     const Color friendly_color = active_color;
     const Color enemy_color = invert(active_color);
 
-    checkers = getAllNonKingAttackers(getKingSq(friendly_color), enemy_color);
     pinned = getPinned(friendly_color);
     danger = getAttackMap(enemy_color);
   }
@@ -290,10 +296,34 @@ namespace lb {
     if (result.getKing(Color::sente).count() != 1 || result.getKing(Color::gote).count() != 1)
       return std::unexpected(ParseError::too_many_kings);
 
+    result.checkers = result.getAllNonKingAttackers(result.getKingSq(result.active_color), invert(result.active_color));
     result.precompute();
     result.hash = result.calcHashSlow();
 
+    result.non_check_clock = {};
+    if (!result.checkers.empty()) {
+      result.non_check_clock[std::to_underlying(result.active_color)] = 1;
+    }
+
     return result;
+  }
+
+  auto Board::placeBoardFromParse(Color color, PieceType ptype, Square sq) -> void {
+    const Bitboard bb = Bitboard::fromSq(sq);
+    colors[std::to_underlying(color)] |= bb;
+    pieces[ptype.toBitboardIndex()] |= bb;
+    board_mailbox[sq.raw] = Place{color, ptype};
+  }
+
+  auto Board::placeHandFromParse(Color color, PieceType ptype, usize count) -> bool {
+    const std::array<usize, 8> max_count{{0, 18, 2, 2, 4, 4, 4, 4}};
+    if (count > max_count[ptype.toHandIndex()] || count == 0)
+      return false;
+    if (hand[std::to_underlying(color)][ptype.toHandIndex()] != 0)
+      return false;
+    hand[std::to_underlying(color)][0] |= 1 << ptype.toHandIndex();
+    hand[std::to_underlying(color)][ptype.toHandIndex()] = static_cast<u8>(count);
+    return true;
   }
 
 } // namespace lb
