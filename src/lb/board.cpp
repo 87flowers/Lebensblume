@@ -1,9 +1,12 @@
 #include "lb/board.h"
 
+#include <print>
 #include <ranges>
+#include <utility>
 
 #include "lb/attacks.h"
 #include "lb/common.h"
+#include "lb/numbers.h"
 #include "lb/zhash.h"
 
 namespace lb {
@@ -190,6 +193,44 @@ namespace lb {
       result ^= zhash::move;
     }
     return result;
+  }
+
+  auto Board::printKifu() const -> void {
+    using PT = PieceType;
+
+    const auto print_hand = [this](Color color) {
+      const usize color_index = std::to_underlying(color);
+      if (hand[color_index][0] == 0) {
+        std::print("なし");
+      } else {
+        bool first = true;
+        for (PieceType ptype : {PT::rook, PT::bishop, PT::gold, PT::silver, PT::knight, PT::lance, PT::pawn}) {
+          const usize count = hand[color_index][ptype.toHandIndex()];
+          if (count > 0) {
+            std::print("{}{}{}", first ? "" : " ", ptype.toJaString(), count > 1 ? numbers::kanji_table[count] : "");
+            first = false;
+          }
+        }
+      }
+      std::print("\n");
+    };
+
+    std::print("後手の持駒：");
+    print_hand(Color::gote);
+    std::print("  ９ ８ ７ ６ ５ ４ ３ ２ １\n");
+    std::print("+---------------------------+\n");
+    for (i8 rank = 0; rank < 9; rank++) {
+      std::print("|");
+      for (i8 file = 8; file >= 0; file--) {
+        const Square sq = Square::fromFileAndRank(static_cast<usize>(file), static_cast<usize>(rank));
+        const Place place = board_mailbox[sq.raw];
+        std::print("{}{}", place.color() == Color::gote ? "v" : " ", place.ptype().toJaString());
+      }
+      std::print("|{}\n", numbers::kanji_table[rank + 1]);
+    }
+    std::print("+---------------------------+\n");
+    std::print("先手の持駒：");
+    print_hand(Color::sente);
   }
 
   auto Board::parse(std::string_view board_str, std::string_view color_str, std::string_view hand_str, std::string_view ply_str)

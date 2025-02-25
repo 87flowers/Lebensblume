@@ -7,8 +7,10 @@
 #include <expected>
 #include <format>
 #include <string_view>
+#include <tuple>
 #include <utility>
 
+#include "lb/numbers.h"
 #include "lb/types.h"
 #include "lb/util/assert.h"
 
@@ -75,14 +77,20 @@ namespace lb {
 
     inline constexpr auto operator==(const PieceType &) const -> bool = default;
 
-    inline static constexpr std::array<std::array<const char *, 15>, 2> en_strings{{
-        {"-", "P", "B", "R", "L", "N", "S", "G", "K", "+P", "+B", "+R", "+L", "+N", "+S"},
-        {"-", "p", "b", "r", "l", "n", "s", "g", "k", "+p", "+b", "+r", "+l", "+n", "+s"},
-    }};
-    inline static constexpr std::array<std::array<const char *, 15>, 2> ja_strings{{
-        {"　", "歩", "角", "飛", "香", "桂", "銀", "金", "玉", "と", "馬", "龍", "杏", "圭", "全"},
-        {"　", "歩", "角", "飛", "香", "桂", "銀", "金", "王", "と", "馬", "龍", "杏", "圭", "全"},
-    }};
+    inline constexpr auto toEnString(Color color = Color::sente) const -> std::string_view {
+      constexpr std::array<std::array<const char *, 15>, 2> en_strings{{
+          {"·", "P", "B", "R", "L", "N", "S", "G", "K", "+P", "+B", "+R", "+L", "+N", "+S"},
+          {"·", "p", "b", "r", "l", "n", "s", "g", "k", "+p", "+b", "+r", "+l", "+n", "+s"},
+      }};
+      return en_strings[std::to_underlying(color)][std::to_underlying(raw)];
+    }
+    inline constexpr auto toJaString(Color color = Color::sente) const -> std::string_view {
+      constexpr std::array<std::array<const char *, 15>, 2> ja_strings{{
+          {"・", "歩", "角", "飛", "香", "桂", "銀", "金", "玉", "と", "馬", "龍", "杏", "圭", "全"},
+          {"・", "歩", "角", "飛", "香", "桂", "銀", "金", "王", "と", "馬", "龍", "杏", "圭", "全"},
+      }};
+      return ja_strings[std::to_underlying(color)][std::to_underlying(raw)];
+    }
 
     static constexpr auto parseSente(char ch) -> std::expected<PieceType, ParseError> {
       constexpr std::string_view piece_order_sente{"PBRLNSGK"};
@@ -104,9 +112,10 @@ namespace lb {
   struct Square {
     u8 raw = 0;
 
-    inline explicit constexpr Square(u8 raw) : raw(raw) { lb_assert(raw < 81); }
+    inline explicit constexpr Square(u8 raw) : raw(raw) { lb_assert(raw < 81, "{}", raw); }
 
     inline static constexpr auto fromFileAndRank(usize file, usize rank) -> Square { return Square{narrow_cast<u8>(rank * 9 + file)}; }
+    inline constexpr auto toFileAndRank() const -> std::tuple<usize, usize> { return {raw % 9, raw / 9}; }
 
     inline constexpr auto isPromoSquare(Color color) const -> bool {
       switch (color) {
@@ -116,6 +125,19 @@ namespace lb {
         return raw >= 6 * 9;
       }
       std::unreachable();
+    }
+
+    inline constexpr auto toUsiString() const -> std::string {
+      const auto [file, rank] = toFileAndRank();
+      return std::format("{}{}", '1' + file, 'a' + rank);
+    }
+    inline constexpr auto toJaString() const -> std::string {
+      const auto [file, rank] = toFileAndRank();
+      return std::format("{}{}", numbers::full_width_table[file + 1], numbers::kanji_table[rank + 1]);
+    }
+    inline constexpr auto toEnString() const -> std::string {
+      const auto [file, rank] = toFileAndRank();
+      return std::format("{}{}", file + 1, rank + 1);
     }
 
     static constexpr auto parse(std::string_view str) -> std::expected<Square, ParseError> {
@@ -374,7 +396,7 @@ template <> struct std::formatter<lb::PieceType, char> {
   template <class ParseContext> constexpr auto parse(ParseContext &ctx) -> ParseContext::iterator { return ctx.begin(); }
 
   template <class FmtContext> auto format(lb::PieceType ptype, FmtContext &ctx) const -> FmtContext::iterator {
-    return std::format_to(ctx.out(), "{}", lb::PieceType::en_strings[0][ptype.raw]);
+    return std::format_to(ctx.out(), "{}", ptype.toEnString());
   }
 };
 
@@ -382,7 +404,8 @@ template <> struct std::formatter<lb::Square, char> {
   template <class ParseContext> constexpr auto parse(ParseContext &ctx) -> ParseContext::iterator { return ctx.begin(); }
 
   template <class FmtContext> auto format(lb::Square sq, FmtContext &ctx) const -> FmtContext::iterator {
-    return std::format_to(ctx.out(), "{}{}", static_cast<char>('1' + sq.raw % 9), static_cast<char>('a' + sq.raw / 9));
+    const auto [file, rank] = sq.toFileAndRank();
+    return std::format_to(ctx.out(), "{}{}", static_cast<char>('1' + file), static_cast<char>('a' + rank));
   }
 };
 

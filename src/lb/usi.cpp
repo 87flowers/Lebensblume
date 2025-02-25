@@ -109,6 +109,10 @@ namespace lb {
       usiParsePosition(game, it);
     } else if (cmd == "perft") {
       usiParsePerft(game, it);
+    } else if (cmd == "d") {
+      game.position().printKifu();
+    } else if (cmd == "kifu") {
+      game.printKifu();
     } else if (cmd == "quit") {
       std::exit(0);
     } else {

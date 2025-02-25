@@ -72,6 +72,7 @@ namespace lb {
     inline constexpr auto getKingSq(Color color) const -> Square { return getKing(color).toSq(); }
     inline constexpr auto getPromoteds(Color color) const -> Bitboard { return colors[std::to_underlying(color)] & pieces.back(); }
 
+    inline constexpr auto getPlace(Square sq) const -> Place { return board_mailbox[sq.raw]; }
     inline constexpr auto getHand(Color color) const -> Hand { return hand[std::to_underlying(color)]; }
 
     inline constexpr auto isInCheck() const -> bool { return !checkers.empty(); }
@@ -98,6 +99,8 @@ namespace lb {
 
     auto calcHashSlow() const -> zhash::Hash;
 
+    auto printKifu() const -> void;
+
     static auto parse(std::string_view str) -> std::expected<Board, ParseError> {
       Tokenizer it{str};
       const std::string_view board_str = it.next();
@@ -111,6 +114,8 @@ namespace lb {
 
     static auto parse(std::string_view board_str, std::string_view color_str, std::string_view hand_str, std::string_view ply_str)
         -> std::expected<Board, ParseError>;
+
+    constexpr auto operator==(const Board &) const -> bool = default;
 
   private:
     auto placeBoardFromParse(Color color, PieceType ptype, Square sq) -> void;
@@ -137,7 +142,7 @@ template <> struct std::formatter<lb::Board, char> {
           std::format_to(ctx.out(), "{}", blanks);
           blanks = 0;
         }
-        std::format_to(ctx.out(), "{}", PieceType::en_strings[std::to_underlying(place.color())][std::to_underlying(place.ptype().raw)]);
+        std::format_to(ctx.out(), "{}", place.ptype().toEnString(place.color()));
       }
       if (file == 0) {
         if (blanks != 0) {
@@ -159,7 +164,7 @@ template <> struct std::formatter<lb::Board, char> {
           if (count > 0) {
             if (count > 1)
               std::format_to(ctx.out(), "{}", count);
-            std::format_to(ctx.out(), "{}", PieceType::en_strings[c][ptype.toHandIndex()]);
+            std::format_to(ctx.out(), "{}", ptype.toEnString(static_cast<Color>(c)));
           }
         }
       }

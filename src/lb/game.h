@@ -22,6 +22,7 @@ namespace lb {
   private:
     std::vector<Board> position_stack;
     std::vector<zhash::Hash> hash_stack;
+    std::vector<Move> move_stack;
 
   public:
     auto position() const -> const Board & { return position_stack.back(); }
@@ -35,6 +36,7 @@ namespace lb {
     auto setPosition(const Board &new_pos) -> void {
       position_stack.clear();
       hash_stack.clear();
+      move_stack.clear();
       position_stack.push_back(new_pos);
       hash_stack.push_back(new_pos.getHash());
     }
@@ -42,12 +44,16 @@ namespace lb {
     auto move(Move m) -> void {
       position_stack.emplace_back(position_stack.back().move(m));
       hash_stack.push_back(position_stack.back().getHash());
+      move_stack.push_back(m);
     }
 
     auto unmove() -> void {
       position_stack.pop_back();
       hash_stack.pop_back();
+      move_stack.pop_back();
     }
+
+    auto printKifu() const -> void;
   };
 
 } // namespace lb
