@@ -25,6 +25,8 @@ namespace lb {
     std::vector<Move> move_stack;
 
   public:
+    auto reset() -> void;
+
     auto position() const -> const Board & { return position_stack.back(); }
     auto hash() const -> zhash::Hash { return position().getHash(); }
     // Strict check

@@ -38,8 +38,11 @@ set(srcs
   src/lb/geometry.h
   src/lb/movegen.cpp
   src/lb/movegen.h
+  src/lb/numbers.h
   src/lb/perft.cpp
   src/lb/perft.h
+  src/lb/search.cpp
+  src/lb/search.h
   src/lb/types.h
   src/lb/usi.cpp
   src/lb/usi.h

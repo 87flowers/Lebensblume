@@ -4,6 +4,8 @@
 
 namespace lb {
 
+  auto Game::reset() -> void { setPositionStartpos(); }
+
   auto Game::checkRepetition() const -> RepetitionType {
     const auto current_hash = hash();
 

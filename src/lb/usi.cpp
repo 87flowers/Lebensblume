@@ -4,9 +4,14 @@
 #include <optional>
 #include <print>
 
+#include "lb/common.h"
 #include "lb/game.h"
 #include "lb/perft.h"
+#include "lb/search.h"
 #include "lb/util/tokenizer.h"
+
+#define xstr(s) str(s)
+#define str(s) #s
 
 namespace lb {
 
@@ -56,6 +61,59 @@ namespace lb {
     return false;
   }
 
+  static auto usiParseGo(Game &game, Tokenizer &it, time::TimePoint start_time) -> void {
+    const auto read_int = [&it] {
+      const std::string_view value_str = it.next();
+      const auto value = parseInt(value_str);
+      if (!value)
+        printUnrecognizedToken("go", value_str);
+      return value.and_then([](i64 x) -> std::optional<i64> { return std::max<i64>(0, x); });
+    };
+
+    std::string_view part = it.next();
+
+    if (part == "wtime" || part == "btime" || part == "winc" || part == "binc" || part == "byoyomi") {
+      search::TimeSettings ts{};
+      while (!part.empty()) {
+        const auto value = read_int();
+        if (!value)
+          return;
+
+        if (part == "wtime") {
+          ts.wtime = time::Milliseconds{*value};
+        } else if (part == "btime") {
+          ts.btime = time::Milliseconds{*value};
+        } else if (part == "binc") {
+          ts.binc = time::Milliseconds{*value};
+        } else if (part == "winc") {
+          ts.winc = time::Milliseconds{*value};
+        } else if (part == "byoyomi") {
+          ts.byoyomi = time::Milliseconds{*value};
+        } else {
+          printUnrecognizedToken("go", part);
+        }
+
+        part = it.next();
+      }
+      search::usiTime(game, std::move(ts));
+    } else if (part == "mate") {
+      std::print("checkmate notimplemented\n");
+    } else if (part == "infinite") {
+      std::print("todo\n");
+    } else if (part == "depth") {
+      const auto value = read_int();
+      if (const auto value = read_int())
+        search::usiDepth(game, *value);
+    } else if (part == "nodes") {
+      if (const auto value = read_int())
+        search::usiNode(game, *value);
+    } else if (part.empty()) {
+      search::usiDepth(game, static_cast<i64>(max_search_ply));
+    } else {
+      printUnrecognizedToken("go", part);
+    }
+  }
+
   static auto usiParseMoves(Game &game, Tokenizer &it) -> void {
     while (true) {
       const std::string_view move_str = it.next();
@@ -93,6 +151,23 @@ namespace lb {
     }
   }
 
+  static auto usiParseNewGame(Game &game, Tokenizer &it) -> void {
+    // Do nothing
+  }
+
+  static auto usiParseIsReady(Game &game, Tokenizer &it) -> void {
+    game.reset();
+    std::print("readyok\n");
+  }
+
+  static auto usiParseUsi(Game &game, Tokenizer &it) -> void {
+    std::print("id name Lebensblume " LB_VERSION "\n"
+               "id author 87 (87flowers.com)\n"
+               "usiok\n");
+  }
+
+  static auto usiParsePing(Game &game, Tokenizer &it) -> void { std::print("pong\n"); }
+
   static auto usiParsePerft(Game &game, Tokenizer &it) -> void {
     const std::string_view depth_str = it.rest().empty() ? "1" : it.next();
     const auto depth = parseInt(depth_str);
@@ -101,18 +176,94 @@ namespace lb {
     perft::run(game.position(), static_cast<usize>(*depth));
   }
 
+  static auto usiParseUndo(Game &game, Tokenizer &it) -> void {
+    const std::string_view count_str = it.rest().empty() ? "1" : it.next();
+    const auto count = parseInt(count_str);
+    if (!count || *count < 0)
+      return printUnrecognizedToken("undo", count_str);
+    for (i64 i = 0; i < count; i++)
+      game.unmove();
+  }
+
+  static auto usiParseDisplay(Game &game, Tokenizer &it) -> void {
+    game.position().printKifu();
+
+    std::print("sfen: {}\n", game.position());
+
+    std::print("checkers:");
+    if (game.position().getCheckers().empty()) {
+      std::print(" -");
+    } else {
+      for (Square sq : game.position().getCheckers())
+        std::print(" {}", sq);
+    }
+    std::print("\n");
+    std::print("pinned:");
+    if (game.position().getPinned().empty()) {
+      std::print(" -");
+    } else {
+      for (Square sq : game.position().getPinned())
+        std::print(" {}", sq);
+    }
+    std::print("\n");
+  }
+
+  static auto usiParseCompiler(Game &game, Tokenizer &it) -> void {
+    // clang-format off
+    std::print("compiler build-datetime " __DATE__ " " __TIME__ "\n"
+#if defined(__VERSION__)
+               "compiler version " __VERSION__ "\n"
+#endif
+#if defined(__clang__)
+               "compiler family clang++ version " xstr(__clang_major__) "." xstr(__clang_minor__) "." xstr(__clang_patchlevel__) "\n"
+#elif defined(__GNUC__)
+               "compiler family g++ version " xstr(__GNUC__) "." xstr(__GNUC_MINOR__) "." xstr(__GNUC_PATCHLEVEL__) "\n"
+#elif defined(_MSC_VER)
+               "compiler family msvc version " xstr(_MSC_FULL_VER) " " xstr(_MSC_BUILD) "\n"
+#else
+               "compiler family unknown\n"
+#endif
+#if LB_NO_ASSERTS
+               "compiler assertions disabled\n"
+#else
+               "compiler assertions enabled\n"
+#endif
+               "compilerok\n");
+    // clang-format on
+  }
+
   auto usiParseCommand(Game &game, std::string_view line) -> void {
+    const time::TimePoint start_time = time::Clock::now();
+
     Tokenizer it{line};
     const std::string_view cmd = it.next();
 
-    if (cmd == "position") {
+    if (cmd == "go") {
+      usiParseGo(game, it, start_time);
+    } else if (cmd == "position") {
       usiParsePosition(game, it);
+    } else if (cmd == "usinewgame") {
+      usiParseNewGame(game, it);
+    } else if (cmd == "isready") {
+      usiParseIsReady(game, it);
+    } else if (cmd == "usi") {
+      usiParseUsi(game, it);
+    } else if (cmd == "gameover") {
+      // ignore
+    } else if (cmd == "ping") {
+      usiParsePing(game, it);
     } else if (cmd == "perft") {
       usiParsePerft(game, it);
+    } else if (cmd == "moves" || cmd == "move") {
+      usiParseMoves(game, it);
+    } else if (cmd == "undo") {
+      usiParseUndo(game, it);
     } else if (cmd == "d") {
-      game.position().printKifu();
+      usiParseDisplay(game, it);
     } else if (cmd == "kifu") {
       game.printKifu();
+    } else if (cmd == "compiler") {
+      usiParseCompiler(game, it);
     } else if (cmd == "quit") {
       std::exit(0);
     } else {
