@@ -49,8 +49,9 @@ namespace lb {
         const T digit = digitValue(*x);
         if (digit >= base)
           throw x;
-        result *= base;
-        result += digit;
+        T next_result = result * base + digit;
+        if (next_result < result)
+          throw "integer overflow";
         x++;
       }
       return result;
