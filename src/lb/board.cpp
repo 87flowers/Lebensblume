@@ -20,10 +20,7 @@ namespace lb {
     if (m.drop()) {
       const PieceType hand_ptype = m.ptype();
 
-      const u8 was_in_hand = hand[color_index][hand_ptype.toHandIndex()]--;
-      lb_assert(was_in_hand > 0);
-      if (was_in_hand == 1)
-        hand[color_index][0] &= ~(1 << hand_ptype.toHandIndex());
+      const u8 was_in_hand = getHand(active_color).removePiece(hand_ptype) + 1;
 
       hash ^= zhash::handIncremental(active_color, hand_ptype, was_in_hand);
 
@@ -55,8 +52,7 @@ namespace lb {
         hash ^= zhash::board(captured.color(), captured.ptype(), m_to);
 
         const PieceType hand_ptype = captured.ptype().demote();
-        hand[color_index][0] |= 1 << hand_ptype.toHandIndex();
-        const u8 now_in_hand = ++hand[color_index][hand_ptype.toHandIndex()];
+        const u8 now_in_hand = getHand(active_color).addPiece(hand_ptype);
 
         hash ^= zhash::handIncremental(active_color, hand_ptype, now_in_hand);
       }
@@ -89,6 +85,63 @@ namespace lb {
 
     pinned = getPinned(friendly_color);
     danger = getAttackMap(enemy_color);
+  }
+
+  // 入玉宣言法
+  auto Board::canDeclareEnteringKingsWin() const -> bool {
+    // Based on WCSC rules (dated 2023-11-27):
+    // The program may declare a win (such a declaration being called “declaration of a win”) if the position satisfies all of the
+    // following conditions.  If the position does not satisfy one or more conditions, then the declaring side loses:
+    // 次の各号に掲げる条件がすべて成立する場合、勝ちを宣言できる（以下「入玉宣言」という）。１つでも条件を満たしていない場合、宣言した方が負けとなる。
+
+    // 1. It is the declaring side's turn.
+    // 一 宣言側の手番である
+    // 6. The declaring side has at least one second left.
+    // 六 宣言側の持ち時間が残っている
+
+    // 5. There is no check on the King of the declaring side.
+    // 五 宣言側の玉に王手がかかっていない。
+    if (isInCheck())
+      return false;
+
+    const Bitboard promo_zone = Bitboard::promoZone(active_color);
+
+    // 2. The King of the declaring side is in the third rank or beyond.
+    // 二 宣言側の玉が敵陣三段目以内に入っている。
+    if ((getKing(active_color) & promo_zone).empty())
+      return false;
+
+    // 4. The declaring side has 10 or more pieces other than the King in the third rank or beyond.
+    // 四 宣言側の敵陣三段目以内の駒は、玉を除いて１０枚以上存在する。
+    const Bitboard in_promo_zone = getColor(active_color) & promo_zone;
+    const usize num_in_promo_zone = in_promo_zone.count() - 1; // Exclude king
+    if (num_in_promo_zone < 10)
+      return false;
+
+    const Bitboard board_bigs = getPiece(active_color, PieceType::rook) | getPiece(active_color, PieceType::bishop) |
+                                getPiece(active_color, PieceType::dragon) | getPiece(active_color, PieceType::horse);
+    const usize board_piece_points = num_in_promo_zone + 4 * (board_bigs & promo_zone).count();
+
+    const Hand hand = getHand(active_color);
+    const usize hand_piece_points = hand.getPiece(PieceType::pawn) + hand.getPiece(PieceType::lance) + hand.getPiece(PieceType::knight) +
+                                    hand.getPiece(PieceType::silver) + hand.getPiece(PieceType::gold) + 5 * hand.getPiece(PieceType::bishop) +
+                                    5 * hand.getPiece(PieceType::rook);
+
+    const usize piece_points = board_piece_points + hand_piece_points;
+
+    // 3. The declaring side has 28 (the first player) or 27 (the second player) piece points or more.
+    //    Piece points are counted only for pieces of the declaring side that are in hand or in the third rank or beyond.
+    //    Piece points are counted as follows:  King: 0; Rook, Bishop, Promoted Rook, or Promoted Bishop: 5; Other: 1.
+    // 三 宣言側が、大駒５点小駒１点で計算して
+    // 　・先手の場合２８点以上の持点がある。
+    // 　・後手の場合２７点以上の持点がある。
+    // 　・点数の対象となるのは、宣言側の持駒と敵陣三段目以内に存在する玉を除く宣言側の駒のみである。
+    switch (active_color) {
+    case Color::sente:
+      return piece_points >= 28;
+    case Color::gote:
+      return piece_points >= 27;
+    }
   }
 
   auto Board::getAllNonKingAttackers(Square sq, Color attacker_color) const -> Bitboard {
@@ -185,7 +238,7 @@ namespace lb {
       for (usize pt : std::views::iota(1, 8)) {
         const Color color = static_cast<Color>(c);
         const PieceType ptype = static_cast<PieceType::Inner>(pt);
-        const usize count = hand[c][pt];
+        const usize count = getHand(color).getPiece(ptype);
         result ^= zhash::hand(color, ptype, count);
       }
     }
@@ -198,14 +251,13 @@ namespace lb {
   auto Board::printKifu() const -> void {
     using PT = PieceType;
 
-    const auto print_hand = [this](Color color) {
-      const usize color_index = std::to_underlying(color);
-      if (hand[color_index][0] == 0) {
+    const auto print_hand = [this](const Hand &hand) {
+      if (hand.bithand() == 0) {
         std::print("なし");
       } else {
         bool first = true;
         for (PieceType ptype : {PT::rook, PT::bishop, PT::gold, PT::silver, PT::knight, PT::lance, PT::pawn}) {
-          const usize count = hand[color_index][ptype.toHandIndex()];
+          const usize count = hand.getPiece(ptype);
           if (count > 0) {
             std::print("{}{}{}", first ? "" : " ", ptype.toJaString(), count > 1 ? numbers::kanji_table[count] : "");
             first = false;
@@ -216,7 +268,7 @@ namespace lb {
     };
 
     std::print("後手の持駒：");
-    print_hand(Color::gote);
+    print_hand(getHand(Color::gote));
     std::print("  ９ ８ ７ ６ ５ ４ ３ ２ １\n");
     std::print("+---------------------------+\n");
     for (i8 rank = 0; rank < 9; rank++) {
@@ -230,7 +282,7 @@ namespace lb {
     }
     std::print("+---------------------------+\n");
     std::print("先手の持駒：");
-    print_hand(Color::sente);
+    print_hand(getHand(Color::sente));
   }
 
   auto Board::parse(std::string_view board_str, std::string_view color_str, std::string_view hand_str, std::string_view ply_str)
@@ -360,10 +412,9 @@ namespace lb {
     const std::array<usize, 8> max_count{{0, 18, 2, 2, 4, 4, 4, 4}};
     if (count > max_count[ptype.toHandIndex()] || count == 0)
       return false;
-    if (hand[std::to_underlying(color)][ptype.toHandIndex()] != 0)
+    if (getHand(color).getPiece(ptype) != 0)
       return false;
-    hand[std::to_underlying(color)][0] |= 1 << ptype.toHandIndex();
-    hand[std::to_underlying(color)][ptype.toHandIndex()] = static_cast<u8>(count);
+    getHand(color).setPiece(ptype, static_cast<u8>(count));
     return true;
   }
 

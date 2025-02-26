@@ -26,7 +26,20 @@ auto roundtrip() -> void {
   }
 }
 
+auto enteringKing() -> void {
+  const std::vector<std::tuple<std::string_view, bool>> cases{{
+      {"6G1K/PPPPPPPPP/9/9/9/9/9/9/k8 b 2R2B 1", true},
+      {"l6nl/5+P1gk/2np1S3/p1p4Pp/3P2Sp1/1PPb2P1P/P5GS1/R8/LN4bKL w RGgsn5p 1", false},
+      {"lnsgkgsnl/1r5b1/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL b - 1", false},
+  }};
+  for (const auto [sfen, expected_result] : cases) {
+    const Board position = Board::parse(sfen).value();
+    lb_assert(position.canDeclareEnteringKingsWin() == expected_result);
+  }
+}
+
 auto main() -> int {
   roundtrip();
+  enteringKing();
   return 0;
 }

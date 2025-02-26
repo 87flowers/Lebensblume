@@ -123,7 +123,7 @@ namespace lb::movegen {
   static auto generateDrops(MoveList &moves, const Board &board, Bitboard valid_dests) -> void {
     const Color color = board.activeColor();
 
-    u8 hand_ptypes = board.getHand(board.activeColor())[0];
+    u8 hand_ptypes = board.getHand(board.activeColor()).bithand();
     lb_assert((hand_ptypes & 1) == 0);
 
     // Pawn drops

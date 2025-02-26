@@ -29,11 +29,39 @@ namespace lb {
     inline constexpr auto operator==(const Place &) const -> bool = default;
   };
 
+  struct Hand {
+  private:
+    friend struct Board;
+
+    std::array<u8, 8> raw{};
+
+    inline constexpr auto removePiece(PieceType ptype) -> u8 {
+      u8 &count = raw[ptype.toHandIndex()];
+      lb_assert(count > 0);
+      count--;
+      if (count == 0)
+        raw[0] &= ~(1 << ptype.toHandIndex());
+      return count;
+    }
+    inline constexpr auto addPiece(PieceType ptype) -> u8 {
+      raw[0] |= 1 << ptype.toHandIndex();
+      return ++raw[ptype.toHandIndex()];
+    }
+    inline constexpr auto setPiece(PieceType ptype, u8 count) -> void {
+      raw[0] |= 1 << ptype.toHandIndex();
+      raw[ptype.toHandIndex()] = static_cast<u8>(count);
+    }
+
+  public:
+    inline constexpr auto bithand() const -> u8 { return raw[0]; }
+    inline constexpr auto getPiece(PieceType ptype) const -> u8 { return raw[ptype.toHandIndex()]; }
+
+    inline constexpr auto operator==(const Hand &) const -> bool = default;
+  };
+
   struct Board {
   private:
     friend class std::formatter<lb::Board, char>;
-
-    using Hand = std::array<u8, 8>;
 
     std::array<Bitboard, 2> colors{};
     std::array<Bitboard, PieceType::bitboard_count> pieces{};
@@ -73,6 +101,7 @@ namespace lb {
     inline constexpr auto getPromoteds(Color color) const -> Bitboard { return colors[std::to_underlying(color)] & pieces.back(); }
 
     inline constexpr auto getPlace(Square sq) const -> Place { return board_mailbox[sq.raw]; }
+    inline constexpr auto getHand(Color color) -> Hand & { return hand[std::to_underlying(color)]; }
     inline constexpr auto getHand(Color color) const -> Hand { return hand[std::to_underlying(color)]; }
 
     inline constexpr auto isInCheck() const -> bool { return !checkers.empty(); }
@@ -90,6 +119,9 @@ namespace lb {
 
     auto moveNoPrecompute(Move m) -> void;
     auto precompute() -> void;
+
+    // 入玉宣言法
+    auto canDeclareEnteringKingsWin() const -> bool;
 
     auto getAllNonKingAttackers(Square sq, Color attacker_color) const -> Bitboard;
     auto getPinned(Color king_color) const -> Bitboard;
@@ -154,13 +186,13 @@ template <> struct std::formatter<lb::Board, char> {
       }
     }
     std::format_to(ctx.out(), " {} ", board.active_color);
-    if (board.hand[0][0] == 0 && board.hand[1][0] == 0) {
+    if (board.hand[0].bithand() == 0 && board.hand[1].bithand() == 0) {
       std::format_to(ctx.out(), "-");
     } else {
       for (usize c : std::views::iota(0, 2)) {
         using PT = PieceType;
         for (PieceType ptype : {PT::rook, PT::bishop, PT::gold, PT::silver, PT::knight, PT::lance, PT::pawn}) {
-          const usize count = board.hand[c][ptype.toHandIndex()];
+          const usize count = board.hand[c].getPiece(ptype);
           if (count > 0) {
             if (count > 1)
               std::format_to(ctx.out(), "{}", count);
