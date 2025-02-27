@@ -39,6 +39,12 @@ namespace lb {
       return &data[len++];
     }
 
+    constexpr auto append(StaticVector &&other) -> void {
+      len += std::exchange(other.len, 0);
+      lb_assert(len < cap);
+      std::move(other.begin(), other.end(), end());
+    }
+
     constexpr auto clear() -> void { len = 0; }
 
     constexpr auto size() const -> usize { return len; }
