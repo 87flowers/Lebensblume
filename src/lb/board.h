@@ -171,23 +171,23 @@ template <> struct std::formatter<lb::Board, char> {
         blanks++;
       } else {
         if (blanks != 0) {
-          std::format_to(ctx.out(), "{}", blanks);
+          ctx.advance_to(std::format_to(ctx.out(), "{}", blanks));
           blanks = 0;
         }
-        std::format_to(ctx.out(), "{}", place.ptype().toEnString(place.color()));
+        ctx.advance_to(std::format_to(ctx.out(), "{}", place.ptype().toEnString(place.color())));
       }
       if (file == 0) {
         if (blanks != 0) {
-          std::format_to(ctx.out(), "{}", blanks);
+          ctx.advance_to(std::format_to(ctx.out(), "{}", blanks));
           blanks = 0;
         }
         if (place_index != 80)
-          std::format_to(ctx.out(), "/");
+          ctx.advance_to(std::format_to(ctx.out(), "/"));
       }
     }
-    std::format_to(ctx.out(), " {} ", board.active_color);
+    ctx.advance_to(std::format_to(ctx.out(), " {} ", board.active_color));
     if (board.hand[0].bithand() == 0 && board.hand[1].bithand() == 0) {
-      std::format_to(ctx.out(), "-");
+      ctx.advance_to(std::format_to(ctx.out(), "-"));
     } else {
       for (usize c : std::views::iota(0, 2)) {
         using PT = PieceType;
@@ -195,8 +195,8 @@ template <> struct std::formatter<lb::Board, char> {
           const usize count = board.hand[c].getPiece(ptype);
           if (count > 0) {
             if (count > 1)
-              std::format_to(ctx.out(), "{}", count);
-            std::format_to(ctx.out(), "{}", ptype.toEnString(static_cast<Color>(c)));
+              ctx.advance_to(std::format_to(ctx.out(), "{}", count));
+            ctx.advance_to(std::format_to(ctx.out(), "{}", ptype.toEnString(static_cast<Color>(c))));
           }
         }
       }
