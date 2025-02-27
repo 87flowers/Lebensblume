@@ -1,5 +1,6 @@
 #pragma once
 
+#include <algorithm>
 #include <array>
 
 #include "lb/types.h"
@@ -15,6 +16,21 @@ namespace lb {
     using size_type = usize;
 
     constexpr StaticVector() = default;
+    ~StaticVector() = default;
+
+    constexpr StaticVector(const StaticVector &other) : len(other.len) { std::copy(other.begin(), other.end(), begin()); }
+    constexpr StaticVector(StaticVector &&other) : len(std::exchange(other.len, 0)) { std::move(other.begin(), other.end(), begin()); }
+
+    constexpr StaticVector &operator=(const StaticVector &other) {
+      len = other.len;
+      std::copy(other.begin(), other.end(), begin());
+      return *this;
+    }
+    constexpr StaticVector &operator=(StaticVector &&other) {
+      len = std::exchange(other.len, 0);
+      std::move(other.begin(), other.end(), begin());
+      return *this;
+    }
 
     constexpr auto push_back(const T &value) -> iterator {
       if (len >= cap)
