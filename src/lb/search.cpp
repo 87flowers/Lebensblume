@@ -187,12 +187,12 @@ namespace lb::search {
       if (ctrl.checkSoftTermination(depth))
         break;
 
-      const f64 nps = time::cast<time::FloatSeconds>(ctrl.elapsed()).count() / static_cast<f64>(ctrl.nodeCount());
+      const f64 nps = static_cast<f64>(ctrl.nodeCount()) / time::cast<time::FloatSeconds>(ctrl.elapsed()).count();
       std::print("info depth {} score cp {} time {} nodes {} nps {} pv {}\n", depth, score, time::cast<time::Milliseconds>(ctrl.elapsed()).count(),
                  ctrl.nodeCount(), static_cast<u64>(nps), pv);
     }
 
-    const f64 nps = time::cast<time::FloatSeconds>(ctrl.elapsed()).count() / static_cast<f64>(ctrl.nodeCount());
+    const f64 nps = static_cast<f64>(ctrl.nodeCount()) / time::cast<time::FloatSeconds>(ctrl.elapsed()).count();
     std::print("info depth {} score cp {} time {} nodes {} nps {} pv {}\n", last_depth, last_score,
                time::cast<time::Milliseconds>(ctrl.elapsed()).count(), ctrl.nodeCount(), static_cast<u64>(nps), last_pv);
     std::print("bestmove {}\n", last_pv.pv[0]);
