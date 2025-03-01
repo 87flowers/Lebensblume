@@ -14,6 +14,27 @@
 
 namespace lb::search {
 
+  namespace nodetype {
+    struct Root;
+    struct Pv;
+    struct NonPv;
+
+    struct Root {
+      inline static constexpr bool is_root = true;
+      inline static constexpr bool is_pv = true;
+    };
+
+    struct Pv {
+      inline static constexpr bool is_root = false;
+      inline static constexpr bool is_pv = true;
+    };
+
+    struct NonPv {
+      inline static constexpr bool is_root = false;
+      inline static constexpr bool is_pv = false;
+    };
+  } // namespace nodetype
+
   struct ControlBase {
   protected:
     time::TimePoint start_time;
@@ -71,7 +92,7 @@ namespace lb::search {
     auto isTerminated() const -> bool { return is_terminated; }
   };
 
-  template <typename ControlT> auto search(Game &game, ControlT &ctrl, Line &pv, i32 alpha, i32 beta, i32 ply, i32 depth) -> i32 {
+  template <typename NodeT, typename ControlT> auto search(Game &game, ControlT &ctrl, Line &pv, i32 alpha, i32 beta, i32 ply, i32 depth) -> i32 {
     const i32 initial_alpha = alpha;
 
     if (game.position().canDeclareEnteringKingsWin()) {
@@ -84,9 +105,11 @@ namespace lb::search {
     if (ply >= max_search_ply)
       return eval::hce(game.position());
 
-    ctrl.checkHardTermination();
-    if (ctrl.isTerminated())
-      return 0;
+    if constexpr (!NodeT::is_root) {
+      ctrl.checkHardTermination();
+      if (ctrl.isTerminated())
+        return 0;
+    }
 
     movegen::MoveList moves;
     movegen::generateMoves(moves, game.position());
@@ -97,6 +120,7 @@ namespace lb::search {
     for (const Move m : moves) {
       game.move(m);
       lb_defer { game.unmove(); };
+      ctrl.nodeVisited();
 
       i32 child_score = eval::no_moves;
       Line child_pv{};
@@ -112,20 +136,27 @@ namespace lb::search {
           std::unreachable();
         }
       } else {
-        child_score = -search(game, ctrl, child_pv, -beta, -alpha, ply + 1, depth - 1);
+        if (!NodeT::is_pv || legal_moves > 0)
+          child_score = -search<nodetype::NonPv>(game, ctrl, child_pv, -alpha - 1, -alpha, ply + 1, depth - 1);
+
+        if (NodeT::is_pv && (legal_moves == 0 || child_score > alpha))
+          child_score = -search<nodetype::Pv>(game, ctrl, child_pv, -beta, -alpha, ply + 1, depth - 1);
       }
 
       legal_moves++;
-      ctrl.nodeVisited();
 
       if (ctrl.isTerminated())
         return 0;
 
       if (child_score > best_score) {
         best_score = child_score;
+
         if (child_score > alpha) {
           alpha = child_score;
-          pv.write(m, std::move(child_pv));
+
+          if constexpr (NodeT::is_pv)
+            pv.write(m, std::move(child_pv));
+
           if (child_score >= beta)
             break;
         }
@@ -144,7 +175,7 @@ namespace lb::search {
 
     for (i32 depth = 1; depth < max_search_ply; depth++) {
       Line pv{};
-      const i32 score = search(game, ctrl, pv, eval::min_score, eval::max_score, 0, depth);
+      const i32 score = search<nodetype::Root>(game, ctrl, pv, eval::min_score, eval::max_score, 0, depth);
 
       if (ctrl.isTerminated())
         break;
