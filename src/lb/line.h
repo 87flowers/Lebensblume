@@ -8,7 +8,7 @@
 namespace lb {
 
   struct Line {
-    StaticVector<Move, max_search_ply + 1> pv;
+    StaticVector<Move, max_search_ply + 1> pv{};
 
     auto clear() -> void { pv.clear(); }
 

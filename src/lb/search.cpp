@@ -122,13 +122,13 @@ namespace lb::search {
         break;
 
       const f64 nps = time::cast<time::FloatSeconds>(ctrl.elapsed()).count() / static_cast<f64>(ctrl.nodes);
-      std::print("info depth {} score cp {} time {} nodes {} nps {} pv {}\n", depth, score, time::cast<time::Milliseconds>(ctrl.elapsed()),
+      std::print("info depth {} score cp {} time {} nodes {} nps {} pv {}\n", depth, score, time::cast<time::Milliseconds>(ctrl.elapsed()).count(),
                  ctrl.nodes, static_cast<u64>(nps), pv);
     }
 
     const f64 nps = time::cast<time::FloatSeconds>(ctrl.elapsed()).count() / static_cast<f64>(ctrl.nodes);
-    std::print("info depth {} score cp {} time {} nodes {} nps {} pv {}\n", last_depth, last_score, time::cast<time::Milliseconds>(ctrl.elapsed()),
-               ctrl.nodes, static_cast<u64>(nps), last_pv);
+    std::print("info depth {} score cp {} time {} nodes {} nps {} pv {}\n", last_depth, last_score,
+               time::cast<time::Milliseconds>(ctrl.elapsed()).count(), ctrl.nodes, static_cast<u64>(nps), last_pv);
     std::print("bestmove {}\n", last_pv.pv[0]);
   }
 
