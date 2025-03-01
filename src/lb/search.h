@@ -17,7 +17,7 @@ namespace lb::search {
   };
 
   auto usiTime(Game &game, TimeSettings ts, time::TimePoint start_time) -> void;
-  auto usiDepth(Game &game, i64 depth) -> void;
-  auto usiNode(Game &game, i64 nodes) -> void;
+  auto usiDepth(Game &game, i32 depth, time::TimePoint start_time) -> void;
+  auto usiNode(Game &game, u64 nodes, time::TimePoint start_time) -> void;
 
 } // namespace lb::search

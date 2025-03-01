@@ -101,14 +101,13 @@ namespace lb {
     } else if (part == "infinite") {
       std::print("todo\n");
     } else if (part == "depth") {
-      const auto value = read_int();
       if (const auto value = read_int())
-        search::usiDepth(game, *value);
+        search::usiDepth(game, static_cast<i32>(std::min(*value, static_cast<i64>(max_search_ply))), std::move(start_time));
     } else if (part == "nodes") {
       if (const auto value = read_int())
-        search::usiNode(game, *value);
+        search::usiNode(game, *value, std::move(start_time));
     } else if (part.empty()) {
-      search::usiDepth(game, static_cast<i64>(max_search_ply));
+      search::usiDepth(game, static_cast<i32>(max_search_ply), std::move(start_time));
     } else {
       printUnrecognizedToken("go", part);
     }

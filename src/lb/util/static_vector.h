@@ -40,9 +40,9 @@ namespace lb {
     }
 
     constexpr auto append(StaticVector &&other) -> void {
-      len += std::exchange(other.len, 0);
-      lb_assert(len < cap);
+      lb_assert(len + other.len < cap);
       std::move(other.begin(), other.end(), end());
+      len += std::exchange(other.len, 0);
     }
 
     constexpr auto clear() -> void { len = 0; }

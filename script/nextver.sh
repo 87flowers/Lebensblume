@@ -1,4 +1,6 @@
 set -euo pipefail
+script_dir=$( cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )
+pushd $script_dir/..
 if [[ $(git diff HEAD --stat) != '' ]]; then
   echo "Dirty tree. Commit first please."
   exit 1
@@ -21,3 +23,4 @@ bench=`./build/lebensblume bench | grep "bench results:" -A 3`
 git add ./src/lb_version.txt
 git commit -m "[$version]" -m "$bench" -e
 git push
+popd

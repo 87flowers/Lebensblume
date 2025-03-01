@@ -14,24 +14,59 @@
 
 namespace lb::search {
 
-  struct TimeControl {
+  struct ControlBase {
+  protected:
     time::TimePoint start_time;
     u64 nodes = 0;
 
-    bool is_terminated = false;
+    explicit ControlBase(time::TimePoint start_time) : start_time(start_time) {}
 
+  public:
+    auto elapsed() const -> time::Duration { return time::Clock::now() - start_time; }
+    auto nodeCount() const -> u64 { return nodes; }
+
+    auto nodeVisited() -> void { nodes++; }
+  };
+
+  struct TimeControl : public ControlBase {
+  private:
+    bool is_terminated = false;
     time::Duration soft_limit;
     time::Duration hard_limit;
 
+  public:
     TimeControl(time::TimePoint start_time, time::Duration soft_limit, time::Duration hard_limit)
-        : start_time(start_time), soft_limit(soft_limit), hard_limit(hard_limit) {}
-
-    auto elapsed() const -> time::Duration { return time::Clock::now() - start_time; }
-
-    auto nodeVisited() -> void { nodes++; }
+        : ControlBase(start_time), soft_limit(soft_limit), hard_limit(hard_limit) {}
 
     auto checkSoftTermination([[maybe_unused]] i32 depth) const -> bool { return soft_limit <= elapsed(); }
     auto checkHardTermination() -> void { is_terminated = hard_limit <= elapsed(); }
+
+    auto isTerminated() const -> bool { return is_terminated; }
+  };
+
+  struct DepthControl : public ControlBase {
+  private:
+    i32 target_depth;
+
+  public:
+    DepthControl(time::TimePoint start_time, i32 target_depth) : ControlBase(start_time), target_depth(target_depth) {}
+
+    auto checkSoftTermination(i32 depth) const -> bool { return depth >= target_depth; }
+    auto checkHardTermination() -> void {}
+
+    auto isTerminated() const -> bool { return false; }
+  };
+
+  struct NodeControl : public ControlBase {
+  private:
+    bool is_terminated = false;
+    u64 hard_limit;
+
+  public:
+    NodeControl(time::TimePoint start_time, u64 hard_limit) : ControlBase(start_time), hard_limit(hard_limit) {}
+
+    auto checkSoftTermination([[maybe_unused]] i32 depth) const -> bool { return false; }
+    auto checkHardTermination() -> void { is_terminated = nodes >= hard_limit; }
 
     auto isTerminated() const -> bool { return is_terminated; }
   };
@@ -121,14 +156,14 @@ namespace lb::search {
       if (ctrl.checkSoftTermination(depth))
         break;
 
-      const f64 nps = time::cast<time::FloatSeconds>(ctrl.elapsed()).count() / static_cast<f64>(ctrl.nodes);
+      const f64 nps = time::cast<time::FloatSeconds>(ctrl.elapsed()).count() / static_cast<f64>(ctrl.nodeCount());
       std::print("info depth {} score cp {} time {} nodes {} nps {} pv {}\n", depth, score, time::cast<time::Milliseconds>(ctrl.elapsed()).count(),
-                 ctrl.nodes, static_cast<u64>(nps), pv);
+                 ctrl.nodeCount(), static_cast<u64>(nps), pv);
     }
 
-    const f64 nps = time::cast<time::FloatSeconds>(ctrl.elapsed()).count() / static_cast<f64>(ctrl.nodes);
+    const f64 nps = time::cast<time::FloatSeconds>(ctrl.elapsed()).count() / static_cast<f64>(ctrl.nodeCount());
     std::print("info depth {} score cp {} time {} nodes {} nps {} pv {}\n", last_depth, last_score,
-               time::cast<time::Milliseconds>(ctrl.elapsed()).count(), ctrl.nodes, static_cast<u64>(nps), last_pv);
+               time::cast<time::Milliseconds>(ctrl.elapsed()).count(), ctrl.nodeCount(), static_cast<u64>(nps), last_pv);
     std::print("bestmove {}\n", last_pv.pv[0]);
   }
 
@@ -148,8 +183,14 @@ namespace lb::search {
     go(game, ctrl);
   }
 
-  auto usiDepth(Game &game, i64 depth) -> void { lb_dbg("TODO"); }
+  auto usiDepth(Game &game, i32 depth, time::TimePoint start_time) -> void {
+    DepthControl ctrl{start_time, depth};
+    go(game, ctrl);
+  }
 
-  auto usiNode(Game &game, i64 nodes) -> void { lb_dbg("TODO"); }
+  auto usiNode(Game &game, u64 nodes, time::TimePoint start_time) -> void {
+    NodeControl ctrl{start_time, nodes};
+    go(game, ctrl);
+  }
 
 } // namespace lb::search
