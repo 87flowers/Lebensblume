@@ -16,7 +16,7 @@ namespace lb::search {
     time::Milliseconds byoyomi{};
   };
 
-  auto usiTime(Game &game, TimeSettings ts) -> void;
+  auto usiTime(Game &game, TimeSettings ts, time::TimePoint start_time) -> void;
   auto usiDepth(Game &game, i64 depth) -> void;
   auto usiNode(Game &game, i64 nodes) -> void;
 

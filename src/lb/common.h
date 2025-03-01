@@ -162,6 +162,7 @@ namespace lb {
     explicit constexpr Move(u16 raw) : raw(raw) {}
 
     static constexpr Move none() { return Move{0}; };
+    static constexpr Move win() { return Move{0xFFFF}; };
 
     static constexpr auto makeMove(Square from, Square to, bool promotion) -> Move {
       u16 result = 0;
@@ -413,7 +414,11 @@ template <> struct std::formatter<lb::Move, char> {
   template <class ParseContext> constexpr auto parse(ParseContext &ctx) -> ParseContext::iterator { return ctx.begin(); }
 
   template <class FmtContext> auto format(lb::Move m, FmtContext &ctx) const -> FmtContext::iterator {
-    if (m.drop()) {
+    if (m == lb::Move::none()) {
+      return std::format_to(ctx.out(), "null");
+    } else if (m == lb::Move::win()) {
+      return std::format_to(ctx.out(), "win");
+    } else if (m.drop()) {
       return std::format_to(ctx.out(), "{}*{}", m.ptype(), m.to());
     } else {
       return std::format_to(ctx.out(), "{}{}{}", m.from(), m.to(), m.promo() ? "+" : "");

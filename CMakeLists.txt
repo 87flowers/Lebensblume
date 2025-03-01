@@ -32,6 +32,9 @@ set(srcs
   src/lb/board.cpp
   src/lb/board.h
   src/lb/common.h
+  src/lb/eval/eval.h
+  src/lb/eval/hce.cpp
+  src/lb/eval/hce.h
   src/lb/game.cpp
   src/lb/game.h
   src/lb/geometry.cpp
@@ -48,6 +51,7 @@ set(srcs
   src/lb/usi.h
   src/lb/util/assert.cpp
   src/lb/util/assert.h
+  src/lb/util/defer.h
   src/lb/util/pext.h
   src/lb/util/static_vector.h
   src/lb/util/tokenizer.h

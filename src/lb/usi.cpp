@@ -95,7 +95,7 @@ namespace lb {
 
         part = it.next();
       }
-      search::usiTime(game, std::move(ts));
+      search::usiTime(game, std::move(ts), std::move(start_time));
     } else if (part == "mate") {
       std::print("checkmate notimplemented\n");
     } else if (part == "infinite") {
@@ -239,7 +239,7 @@ namespace lb {
     const std::string_view cmd = it.next();
 
     if (cmd == "go") {
-      usiParseGo(game, it, start_time);
+      usiParseGo(game, it, std::move(start_time));
     } else if (cmd == "position") {
       usiParsePosition(game, it);
     } else if (cmd == "usinewgame") {
