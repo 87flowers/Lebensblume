@@ -5,7 +5,8 @@ if [[ $(git diff HEAD --stat) != '' ]]; then
 fi
 next_ver=`cat ./src/lb_version.txt | awk -F. -v OFS=. '{$NF=$NF+1;print}'`
 echo $next_ver > ./src/lb_version.txt
-cmake -B build -DCMAKE_BUILD_TYPE=Release && cmake --build build
+cmake -B build -DCMAKE_BUILD_TYPE=Release
+cmake --build build
 version=`echo "usi" | ./build/lebensblume | grep "id name" | cut --delimiter=" " -f4`
 if [[ -e "out/lebensblume-$version" ]]; then
   echo "Version $version alredy exists"

@@ -1,7 +1,7 @@
 cmake_minimum_required(VERSION 3.30)
+project(Lebensblume LANGUAGES CXX)
 
 file(STRINGS src/lb_version.txt LB_VERSION LIMIT_COUNT 1)
-project(Lebensblume VERSION ${LB_VERSION} LANGUAGES CXX)
 
 include(CheckIPOSupported)
 check_ipo_supported()
@@ -19,7 +19,7 @@ set(CMAKE_INTERPROCEDURAL_OPTIMIZATION TRUE)
 include_directories(src)
 add_compile_options(-march=native)
 add_link_options(-march=native)
-add_compile_definitions(LB_VERSION="${CMAKE_PROJECT_VERSION}")
+add_compile_definitions(LB_VERSION="${LB_VERSION}")
 if(CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
   add_compile_options(-fconstexpr-ops-limit=1000000000)
 elseif(CMAKE_CXX_COMPILER_ID STREQUAL "Clang")

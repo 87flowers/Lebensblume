@@ -9,7 +9,8 @@ if [[ $(git diff HEAD --stat) != '' ]]; then
 fi
 devver=$(git describe --always --dirty)
 echo $devver > src/lb_version.txt
-cmake -B build -DCMAKE_BUILD_TYPE=Release && cmake --build build
+cmake -B build -DCMAKE_BUILD_TYPE=Release
+cmake --build build
 echo "dev hash:"
 sha1sum build/lebensblume
 eta ~/shogibooks/4moves_v1_shogi.epd build/lebensblume out/lebensblume-latest 8+0.08 $1 $2
