@@ -29,6 +29,8 @@ endif()
 set(srcs
   src/lb/attacks.cpp
   src/lb/attacks.h
+  src/lb/bench.cpp
+  src/lb/bench.h
   src/lb/board.cpp
   src/lb/board.h
   src/lb/common.h

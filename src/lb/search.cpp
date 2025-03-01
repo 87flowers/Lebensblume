@@ -224,4 +224,10 @@ namespace lb::search {
     go(game, ctrl);
   }
 
+  auto bench(Game &game, i32 depth, time::TimePoint start_time) -> u64 {
+    DepthControl ctrl{start_time, depth};
+    go(game, ctrl);
+    return ctrl.nodeCount();
+  }
+
 } // namespace lb::search

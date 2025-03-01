@@ -20,4 +20,6 @@ namespace lb::search {
   auto usiDepth(Game &game, i32 depth, time::TimePoint start_time) -> void;
   auto usiNode(Game &game, u64 nodes, time::TimePoint start_time) -> void;
 
+  auto bench(Game &game, i32 depth, time::TimePoint start_time) -> u64;
+
 } // namespace lb::search

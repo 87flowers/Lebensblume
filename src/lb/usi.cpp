@@ -4,6 +4,7 @@
 #include <optional>
 #include <print>
 
+#include "lb/bench.h"
 #include "lb/common.h"
 #include "lb/game.h"
 #include "lb/perft.h"
@@ -251,6 +252,8 @@ namespace lb {
       // ignore
     } else if (cmd == "ping") {
       usiParsePing(game, it);
+    } else if (cmd == "bench") {
+      bench::run();
     } else if (cmd == "perft") {
       usiParsePerft(game, it);
     } else if (cmd == "moves" || cmd == "move") {
