@@ -48,6 +48,7 @@ set(srcs
   src/lb/perft.h
   src/lb/search.cpp
   src/lb/search.h
+  src/lb/search_control.h
   src/lb/types.h
   src/lb/usi.cpp
   src/lb/usi.h
