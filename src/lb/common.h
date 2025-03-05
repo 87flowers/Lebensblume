@@ -17,6 +17,7 @@
 namespace lb {
   constexpr usize max_legal_moves = 600;
   constexpr usize max_search_ply = 128;
+  constexpr usize default_hash_size = 8; // MB
 
   enum class ParseError {
     invalid_char,

@@ -41,7 +41,7 @@ namespace lb::search {
 
     if (game.position().canDeclareEnteringKingsWin()) {
       pv.write(Move::win());
-      return eval::mate(ply);
+      return eval::mating(ply);
     }
 
     if (depth <= 0)

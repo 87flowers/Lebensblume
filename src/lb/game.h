@@ -4,6 +4,7 @@
 
 #include "lb/board.h"
 #include "lb/common.h"
+#include "lb/tt.h"
 #include "lb/types.h"
 #include "lb/zhash.h"
 
@@ -23,6 +24,8 @@ namespace lb {
     std::vector<Board> position_stack;
     std::vector<zhash::Hash> hash_stack;
     std::vector<Move> move_stack;
+
+    tt::TT transposition_table{default_hash_size};
 
   public:
     auto reset() -> void;
@@ -54,6 +57,9 @@ namespace lb {
       hash_stack.pop_back();
       move_stack.pop_back();
     }
+
+    auto ttLoad(int ply) const -> tt::LookupResult { return transposition_table.load(hash(), ply); }
+    auto ttStore(int ply, tt::LookupResult lr) -> void { transposition_table.store(hash(), ply, lr); }
 
     auto printKifu() const -> void;
   };

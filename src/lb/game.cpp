@@ -4,7 +4,10 @@
 
 namespace lb {
 
-  auto Game::reset() -> void { setPositionStartpos(); }
+  auto Game::reset() -> void {
+    setPositionStartpos();
+    transposition_table.clear();
+  }
 
   auto Game::checkRepetition() const -> RepetitionType {
     const auto current_hash = hash();

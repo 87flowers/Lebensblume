@@ -49,6 +49,8 @@ set(srcs
   src/lb/search.cpp
   src/lb/search.h
   src/lb/search_control.h
+  src/lb/tt.cpp
+  src/lb/tt.h
   src/lb/types.h
   src/lb/usi.cpp
   src/lb/usi.h
