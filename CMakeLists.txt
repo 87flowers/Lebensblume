@@ -56,6 +56,7 @@ set(srcs
   src/lb/util/assert.h
   src/lb/util/defer.h
   src/lb/util/pext.h
+  src/lb/util/sign_extend.h
   src/lb/util/static_vector.h
   src/lb/util/tokenizer.h
   src/lb/zhash.h
