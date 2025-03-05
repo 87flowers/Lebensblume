@@ -65,6 +65,7 @@ add_executable(lebensblume src/main.cpp ${srcs})
 target_compile_options(lebensblume PUBLIC $<$<CONFIG:Release>:-DLB_NO_ASSERTS>)
 
 add_library(lb OBJECT ${srcs})
+do_test(bench)
 do_test(board)
 do_test(common)
 do_test(game)
