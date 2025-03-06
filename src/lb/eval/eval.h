@@ -38,7 +38,7 @@ namespace lb::eval {
     return std::max(max_score - ply, max_normal_score);
   }
 
-  inline constexpr auto plysToMate(i32 score) -> bool {
+  inline constexpr auto plysToMate(i32 score) -> i32 {
     lb_assert(isTheoretical(score));
     if (score < 0) {
       return score - min_score;

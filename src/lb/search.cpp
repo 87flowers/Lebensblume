@@ -61,6 +61,7 @@ namespace lb::search {
 
     i32 best_score = eval::no_moves;
     usize legal_moves = 0;
+    Move best_move = tte.move;
 
     for (Move m = moves.next(); m != Move::none(); m = moves.next()) {
       game.move(m);
@@ -98,6 +99,7 @@ namespace lb::search {
 
         if (child_score > alpha) {
           alpha = child_score;
+          best_move = m;
 
           if constexpr (NodeT::is_pv)
             pv.write(m, std::move(child_pv));
@@ -110,6 +112,16 @@ namespace lb::search {
 
     if (legal_moves == 0)
       return eval::mated(ply);
+
+    game.ttStore(ply, {
+                          .depth = depth,
+                          .bound = best_score >= beta            ? tt::Bound::lower_bound
+                                   : best_score <= initial_alpha ? tt::Bound::upper_bound
+                                                                 : tt::Bound::exact,
+                          .score = best_score,
+                          .move = best_move,
+                      });
+
     return best_score;
   }
 

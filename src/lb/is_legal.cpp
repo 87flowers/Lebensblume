@@ -66,11 +66,10 @@ namespace lb {
       const Square to = m.to();
       const bool promo = m.promo();
 
+      lb_assert(from != to);
+
       const Bitboard from_bb = Bitboard::fromSq(from);
       const Bitboard to_bb = Bitboard::fromSq(to);
-
-      lb_assert(!promo || from.isPromoSquare(color) || to.isPromoSquare(color));
-      lb_assert(from != to);
 
       const Place src = position.getPlace(from);
       const Place dest = position.getPlace(to);
@@ -79,6 +78,8 @@ namespace lb {
       if (src.empty() || src.color() != color || ptype == PieceType::none)
         return false;
       if (promo && !ptype.promotable())
+        return false;
+      if (promo && !from.isPromoSquare(color) && !to.isPromoSquare(color))
         return false;
       if (!dest.empty() && dest.color() == color)
         return false;
