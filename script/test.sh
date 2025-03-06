@@ -13,6 +13,6 @@ cmake -B build -DCMAKE_BUILD_TYPE=Release
 cmake --build build
 echo "dev hash:"
 sha1sum build/lebensblume
-eta ~/shogibooks/4moves_v1_shogi.epd build/lebensblume out/lebensblume-latest 8+0.08 $1 $2
+eta sprt ~/shogibooks/4moves_v1_shogi.epd build/lebensblume out/lebensblume-latest 8+0.08 $1 $2
 git checkout -- src/lb_version.txt
 popd
