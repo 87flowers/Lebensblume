@@ -12,7 +12,7 @@
 namespace lb::bench {
 
   auto run() -> void {
-    constexpr i32 target_depth = 4;
+    constexpr i32 target_depth = 5;
 
     const std::vector<std::string_view> sfens{
         "lnsgkgsnl/1r5b1/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL b - 1",
