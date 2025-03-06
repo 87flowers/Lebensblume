@@ -27,6 +27,16 @@ elseif(CMAKE_CXX_COMPILER_ID STREQUAL "Clang")
 endif()
 
 set(srcs
+  src/lb/eval/eval.h
+  src/lb/eval/hce.cpp
+  src/lb/eval/hce.h
+  src/lb/util/assert.cpp
+  src/lb/util/assert.h
+  src/lb/util/defer.h
+  src/lb/util/pext.h
+  src/lb/util/sign_extend.h
+  src/lb/util/static_vector.h
+  src/lb/util/tokenizer.h
   src/lb/attacks.cpp
   src/lb/attacks.h
   src/lb/bench.cpp
@@ -34,13 +44,13 @@ set(srcs
   src/lb/board.cpp
   src/lb/board.h
   src/lb/common.h
-  src/lb/eval/eval.h
-  src/lb/eval/hce.cpp
-  src/lb/eval/hce.h
   src/lb/game.cpp
   src/lb/game.h
   src/lb/geometry.cpp
   src/lb/geometry.h
+  src/lb/is_legal.cpp
+  src/lb/is_legal.h
+  src/lb/line.h
   src/lb/movegen.cpp
   src/lb/movegen.h
   src/lb/numbers.h
@@ -54,13 +64,6 @@ set(srcs
   src/lb/types.h
   src/lb/usi.cpp
   src/lb/usi.h
-  src/lb/util/assert.cpp
-  src/lb/util/assert.h
-  src/lb/util/defer.h
-  src/lb/util/pext.h
-  src/lb/util/sign_extend.h
-  src/lb/util/static_vector.h
-  src/lb/util/tokenizer.h
   src/lb/zhash.h
 )
 
@@ -72,5 +75,6 @@ do_test(bench)
 do_test(board)
 do_test(common)
 do_test(game)
+do_test(is_legal)
 do_test(movegen)
 do_test(perft)

@@ -25,7 +25,7 @@ namespace lb::movegen {
   static auto splatDrops(MoveList &moves, PieceType ptype, Bitboard to) -> void;
 
   // Avoid 行き所のない駒
-  inline static constexpr auto validNormalDests(Color active_color, PieceType ptype) -> Bitboard {
+  auto validNormalDests(Color active_color, PieceType ptype) -> Bitboard {
     switch (ptype.raw) {
     case PieceType::none:
       lb_assert(false);

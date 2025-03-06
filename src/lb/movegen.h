@@ -12,6 +12,7 @@ namespace lb::movegen {
 
   using MoveList = StaticVector<Move, max_legal_moves>;
 
+  auto validNormalDests(Color active_color, PieceType ptype) -> Bitboard;
   auto isUchifuzume(const Board &board, Square enemy_king, Bitboard drop_bb) -> bool;
 
   auto generateMoves(MoveList &moves, const Board &board) -> void;
