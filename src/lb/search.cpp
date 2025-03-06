@@ -7,7 +7,7 @@
 #include "lb/eval/hce.h"
 #include "lb/game.h"
 #include "lb/line.h"
-#include "lb/movegen.h"
+#include "lb/move_picker.h"
 #include "lb/search_control.h"
 #include "lb/types.h"
 #include "lb/util/assert.h"
@@ -55,13 +55,14 @@ namespace lb::search {
         return 0;
     }
 
-    movegen::MoveList moves;
-    movegen::generateMoves(moves, game.position());
+    const auto tte = game.ttLoad(ply);
+
+    MovePicker moves{game, tte.move};
 
     i32 best_score = eval::no_moves;
     usize legal_moves = 0;
 
-    for (const Move m : moves) {
+    for (Move m = moves.next(); m != Move::none(); m = moves.next()) {
       game.move(m);
       lb_defer { game.unmove(); };
       ctrl.nodeVisited();

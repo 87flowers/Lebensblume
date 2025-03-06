@@ -51,6 +51,8 @@ set(srcs
   src/lb/is_legal.cpp
   src/lb/is_legal.h
   src/lb/line.h
+  src/lb/move_picker.cpp
+  src/lb/move_picker.h
   src/lb/movegen.cpp
   src/lb/movegen.h
   src/lb/numbers.h
