@@ -4,15 +4,15 @@
 #include <tuple>
 #include <vector>
 
-#include "lb/board.h"
 #include "lb/is_legal.h"
 #include "lb/perft.h"
+#include "lb/position.h"
 #include "lb/types.h"
 #include "lb/util/assert.h"
 
 using namespace lb;
 
-template <bool print> auto isLegalPerft(const Board &position, usize depth) -> usize {
+template <bool print> auto isLegalPerft(const Position &position, usize depth) -> usize {
   if (depth == 0)
     return 1;
 
@@ -37,7 +37,7 @@ template <bool print> auto isLegalPerft(const Board &position, usize depth) -> u
 
         const Move m = Move::makeMove(from, to, promo);
         if (isMoveLegal(position, m)) {
-          const Board new_position = position.move(m);
+          const Position new_position = position.move(m);
           const usize child = isLegalPerft<false>(new_position, depth - 1);
           if constexpr (print) {
             std::print("{}: {}\n", m, child);
@@ -54,7 +54,7 @@ template <bool print> auto isLegalPerft(const Board &position, usize depth) -> u
       const Square to{t};
       const Move m = Move::makeDrop(ptype, to);
       if (isMoveLegal(position, m)) {
-        const Board new_position = position.move(m);
+        const Position new_position = position.move(m);
         const usize child = isLegalPerft<false>(new_position, depth - 1);
         if constexpr (print) {
           std::print("{}: {}\n", m, child);
@@ -83,7 +83,7 @@ auto main() -> int {
   }};
 
   for (auto [sfen, expected_results] : cases) {
-    const Board position = Board::parse(sfen).value();
+    const Position position = Position::parse(sfen).value();
     std::print("position {}\n", position);
     for (usize i = 0; i < expected_results.size(); i++) {
       const usize result = isLegalPerft<true>(position, i);

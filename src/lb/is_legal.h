@@ -1,10 +1,10 @@
 #pragma once
 
-#include "lb/board.h"
 #include "lb/common.h"
+#include "lb/position.h"
 
 namespace lb {
 
-  auto isMoveLegal(const Board &position, Move move) -> bool;
+  auto isMoveLegal(const Position &position, Move move) -> bool;
 
 }

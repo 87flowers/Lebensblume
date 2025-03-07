@@ -3,21 +3,21 @@
 #include <bit>
 
 #include "lb/attacks.h"
-#include "lb/board.h"
 #include "lb/common.h"
 #include "lb/geometry.h"
+#include "lb/position.h"
 #include "lb/types.h"
 #include "lb/util/static_vector.h"
 
 namespace lb::movegen {
 
-  static auto generateMovesNoCheckers(MoveList &moves, const Board &board) -> void;
-  static auto generateMovesOneChecker(MoveList &moves, const Board &board) -> void;
-  static auto generateMovesTwoCheckers(MoveList &moves, const Board &board) -> void;
+  static auto generateMovesNoCheckers(MoveList &moves, const Position &position) -> void;
+  static auto generateMovesOneChecker(MoveList &moves, const Position &position) -> void;
+  static auto generateMovesTwoCheckers(MoveList &moves, const Position &position) -> void;
 
-  static auto generateNonKingMoves(MoveList &moves, const Board &board, Bitboard valid_dests) -> void;
-  static auto generateKingMoves(MoveList &moves, const Board &board) -> void;
-  static auto generateDrops(MoveList &moves, const Board &board, Bitboard valid_dests) -> void;
+  static auto generateNonKingMoves(MoveList &moves, const Position &position, Bitboard valid_dests) -> void;
+  static auto generateKingMoves(MoveList &moves, const Position &position) -> void;
+  static auto generateDrops(MoveList &moves, const Position &position, Bitboard valid_dests) -> void;
 
   static auto splatNormalMoves(MoveList &moves, Square from, Bitboard to) -> void;
   template <PieceType ptype> static auto splatMaybePromoMoves(MoveList &moves, Color active_color, Square from, Bitboard to) -> void;
@@ -40,44 +40,44 @@ namespace lb::movegen {
     }
   }
 
-  auto generateMoves(MoveList &moves, const Board &board) -> void {
-    switch (board.getCheckers().count()) {
+  auto generateMoves(MoveList &moves, const Position &position) -> void {
+    switch (position.getCheckers().count()) {
     case 0:
-      return generateMovesNoCheckers(moves, board);
+      return generateMovesNoCheckers(moves, position);
     case 1:
-      return generateMovesOneChecker(moves, board);
+      return generateMovesOneChecker(moves, position);
     default:
-      return generateMovesTwoCheckers(moves, board);
+      return generateMovesTwoCheckers(moves, position);
     }
   }
 
-  static auto generateMovesNoCheckers(MoveList &moves, const Board &board) -> void {
-    const Bitboard valid_dests = ~board.getColor(board.activeColor());
-    const Bitboard valid_drop_dests = ~board.getOccupied();
-    generateNonKingMoves(moves, board, valid_dests);
-    generateKingMoves(moves, board);
-    generateDrops(moves, board, valid_drop_dests);
+  static auto generateMovesNoCheckers(MoveList &moves, const Position &position) -> void {
+    const Bitboard valid_dests = ~position.getColor(position.activeColor());
+    const Bitboard valid_drop_dests = ~position.getOccupied();
+    generateNonKingMoves(moves, position, valid_dests);
+    generateKingMoves(moves, position);
+    generateDrops(moves, position, valid_drop_dests);
   }
 
-  static auto generateMovesOneChecker(MoveList &moves, const Board &board) -> void {
-    const Bitboard valid_dests = geometry::rayBetween(board.getKingSq(board.activeColor()), board.getCheckers().toSq());
-    generateNonKingMoves(moves, board, valid_dests | board.getCheckers());
-    generateKingMoves(moves, board);
-    generateDrops(moves, board, valid_dests);
+  static auto generateMovesOneChecker(MoveList &moves, const Position &position) -> void {
+    const Bitboard valid_dests = geometry::rayBetween(position.getKingSq(position.activeColor()), position.getCheckers().toSq());
+    generateNonKingMoves(moves, position, valid_dests | position.getCheckers());
+    generateKingMoves(moves, position);
+    generateDrops(moves, position, valid_dests);
   }
 
-  static auto generateMovesTwoCheckers(MoveList &moves, const Board &board) -> void { generateKingMoves(moves, board); }
+  static auto generateMovesTwoCheckers(MoveList &moves, const Position &position) -> void { generateKingMoves(moves, position); }
 
-  static auto generateNonKingMoves(MoveList &moves, const Board &board, Bitboard valid_dests) -> void {
-    const Color color = board.activeColor();
-    const Bitboard occupied = board.getOccupied();
-    const Bitboard pinned = board.getPinned();
-    const Square king_sq = board.getKingSq(color);
+  static auto generateNonKingMoves(MoveList &moves, const Position &position, Bitboard valid_dests) -> void {
+    const Color color = position.activeColor();
+    const Bitboard occupied = position.getOccupied();
+    const Bitboard pinned = position.getPinned();
+    const Square king_sq = position.getKingSq(color);
 
     const auto gen = [&]<PieceType ptype>(auto op) {
-      const Bitboard from_bb = ptype == PieceType::gold
-                                   ? board.getPiece(color, PieceType::gold) | board.getPiece(color, PieceType::tokin) | board.getPromoteds(color)
-                                   : board.getPiece(color, ptype);
+      const Bitboard from_bb = ptype == PieceType::gold ? position.getPiece(color, PieceType::gold) | position.getPiece(color, PieceType::tokin) |
+                                                              position.getPromoteds(color)
+                                                        : position.getPiece(color, ptype);
       const Bitboard nonpinned_from_bb = from_bb & ~pinned;
       const Bitboard pinned_from_bb = from_bb & pinned;
 
@@ -114,16 +114,16 @@ namespace lb::movegen {
     gen.template operator()<PieceType::pawn>([](Square from, Color color, Bitboard blockers) { return attacks::pawn(from, color); });
   }
 
-  static auto generateKingMoves(MoveList &moves, const Board &board) -> void {
-    const Square king_sq = board.getKingSq(board.activeColor());
-    const Bitboard king_moves = attacks::king(king_sq) & ~board.getDanger() & ~board.getColor(board.activeColor());
+  static auto generateKingMoves(MoveList &moves, const Position &position) -> void {
+    const Square king_sq = position.getKingSq(position.activeColor());
+    const Bitboard king_moves = attacks::king(king_sq) & ~position.getDanger() & ~position.getColor(position.activeColor());
     splatNormalMoves(moves, king_sq, king_moves);
   }
 
-  static auto generateDrops(MoveList &moves, const Board &board, Bitboard valid_dests) -> void {
-    const Color color = board.activeColor();
+  static auto generateDrops(MoveList &moves, const Position &position, Bitboard valid_dests) -> void {
+    const Color color = position.activeColor();
 
-    u8 hand_ptypes = board.getHand(board.activeColor()).bithand();
+    u8 hand_ptypes = position.getHand(position.activeColor()).bithand();
     lb_assert((hand_ptypes & 1) == 0);
 
     // Pawn drops
@@ -131,12 +131,12 @@ namespace lb::movegen {
       hand_ptypes &= hand_ptypes - 1;
 
       const Bitboard valid_normal_dests = validNormalDests(color, PieceType::pawn);
-      const Bitboard nifu_restriction = board.getPiece(color, PieceType::pawn).fillFiles();
-      const Bitboard enemy_king = board.getKing(invert(color));
+      const Bitboard nifu_restriction = position.getPiece(color, PieceType::pawn).fillFiles();
+      const Bitboard enemy_king = position.getKing(invert(color));
       const Bitboard potential_uchifuzume = enemy_king.shiftRelative(Direction::n, invert(color));
 
       Bitboard drops = valid_dests & valid_normal_dests & ~nifu_restriction;
-      if (!(drops & potential_uchifuzume).empty() && isUchifuzume(board, enemy_king.toSq(), potential_uchifuzume))
+      if (!(drops & potential_uchifuzume).empty() && isUchifuzume(position, enemy_king.toSq(), potential_uchifuzume))
         drops &= ~potential_uchifuzume;
       splatDrops(moves, PieceType::pawn, drops);
     }
@@ -149,15 +149,15 @@ namespace lb::movegen {
     }
   }
 
-  auto isUchifuzume(const Board &board, Square enemy_king, Bitboard drop_bb) -> bool {
-    const Color enemy_color = invert(board.activeColor());
-    const Bitboard pawn_attackers = board.getAllNonKingAttackers(drop_bb.toSq(), enemy_color);
-    const Bitboard nonpinned_pawn_attackers = pawn_attackers & ~board.getPinnedWithExtraAttackerPawns(enemy_color, drop_bb);
+  auto isUchifuzume(const Position &position, Square enemy_king, Bitboard drop_bb) -> bool {
+    const Color enemy_color = invert(position.activeColor());
+    const Bitboard pawn_attackers = position.getAllNonKingAttackers(drop_bb.toSq(), enemy_color);
+    const Bitboard nonpinned_pawn_attackers = pawn_attackers & ~position.getPinnedWithExtraAttackerPawns(enemy_color, drop_bb);
     if (!nonpinned_pawn_attackers.empty())
       return false;
 
     const Bitboard ring = attacks::king(enemy_king);
-    const Bitboard attack_map = board.getAttackMapWithExtraAttackerPawns(board.activeColor(), drop_bb) | board.getColor(enemy_color);
+    const Bitboard attack_map = position.getAttackMapWithExtraAttackerPawns(position.activeColor(), drop_bb) | position.getColor(enemy_color);
     return (attack_map & ring) == ring;
   }
 

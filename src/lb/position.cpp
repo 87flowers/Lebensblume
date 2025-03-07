@@ -1,4 +1,4 @@
-#include "lb/board.h"
+#include "lb/position.h"
 
 #include <print>
 #include <ranges>
@@ -11,9 +11,9 @@
 
 namespace lb {
 
-  const Board Board::startpos = Board::parse("lnsgkgsnl/1r5b1/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL b - 1").value();
+  const Position Position::startpos = Position::parse("lnsgkgsnl/1r5b1/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL b - 1").value();
 
-  auto Board::moveNoPrecompute(Move m) -> void {
+  auto Position::moveNoPrecompute(Move m) -> void {
     const usize color_index = std::to_underlying(active_color);
     const Square m_to = m.to();
 
@@ -79,7 +79,7 @@ namespace lb {
     lb_assert(hash == calcHashSlow(), "{} {} {:x} {:x} {:x}", *this, m, hash, calcHashSlow(), hash ^ calcHashSlow());
   }
 
-  auto Board::precompute() -> void {
+  auto Position::precompute() -> void {
     const Color friendly_color = active_color;
     const Color enemy_color = invert(active_color);
 
@@ -88,7 +88,7 @@ namespace lb {
   }
 
   // 入玉宣言法
-  auto Board::canDeclareEnteringKingsWin() const -> bool {
+  auto Position::canDeclareEnteringKingsWin() const -> bool {
     // Based on WCSC rules (dated 2023-11-27):
     // The program may declare a win (such a declaration being called “declaration of a win”) if the position satisfies all of the
     // following conditions.  If the position does not satisfy one or more conditions, then the declaring side loses:
@@ -144,7 +144,7 @@ namespace lb {
     }
   }
 
-  auto Board::getAllNonKingAttackers(Square sq, Color attacker_color) const -> Bitboard {
+  auto Position::getAllNonKingAttackers(Square sq, Color attacker_color) const -> Bitboard {
     const Color defender_color = invert(attacker_color);
     const Bitboard occupied = getOccupied();
 
@@ -165,9 +165,9 @@ namespace lb {
     return result;
   }
 
-  auto Board::getPinned(Color king_color) const -> Bitboard { return getPinnedWithExtraAttackerPawns(king_color, Bitboard{}); }
+  auto Position::getPinned(Color king_color) const -> Bitboard { return getPinnedWithExtraAttackerPawns(king_color, Bitboard{}); }
 
-  auto Board::getPinnedWithExtraAttackerPawns(Color king_color, Bitboard extra_pawns) const -> Bitboard {
+  auto Position::getPinnedWithExtraAttackerPawns(Color king_color, Bitboard extra_pawns) const -> Bitboard {
     const Color friendly_color = king_color;
     const Color enemy_color = invert(king_color);
 
@@ -203,9 +203,9 @@ namespace lb {
     return result;
   }
 
-  auto Board::getAttackMap(Color attacker_color) const -> Bitboard { return getAttackMapWithExtraAttackerPawns(attacker_color, Bitboard{}); }
+  auto Position::getAttackMap(Color attacker_color) const -> Bitboard { return getAttackMapWithExtraAttackerPawns(attacker_color, Bitboard{}); }
 
-  auto Board::getAttackMapWithExtraAttackerPawns(Color attacker_color, Bitboard extra_pawns) const -> Bitboard {
+  auto Position::getAttackMapWithExtraAttackerPawns(Color attacker_color, Bitboard extra_pawns) const -> Bitboard {
     const Bitboard occupied = (getOccupied() & ~getKing(invert(attacker_color))) | extra_pawns;
 
     const Bitboard orthogonals = getPiece(attacker_color, PieceType::rook) | getPiece(attacker_color, PieceType::dragon);
@@ -225,7 +225,7 @@ namespace lb {
     return result;
   }
 
-  auto Board::calcHashSlow() const -> zhash::Hash {
+  auto Position::calcHashSlow() const -> zhash::Hash {
     zhash::Hash result = 0;
     for (u8 i : std::views::iota(0, 81)) {
       const Square sq{i};
@@ -248,7 +248,7 @@ namespace lb {
     return result;
   }
 
-  auto Board::printKifu() const -> void {
+  auto Position::printKifu() const -> void {
     using PT = PieceType;
 
     const auto print_hand = [this](const Hand &hand) {
@@ -285,9 +285,9 @@ namespace lb {
     print_hand(getHand(Color::sente));
   }
 
-  auto Board::parse(std::string_view board_str, std::string_view color_str, std::string_view hand_str, std::string_view ply_str)
-      -> std::expected<Board, ParseError> {
-    Board result{};
+  auto Position::parse(std::string_view board_str, std::string_view color_str, std::string_view hand_str, std::string_view ply_str)
+      -> std::expected<Position, ParseError> {
+    Position result{};
 
     // Parse board
     {
@@ -401,14 +401,14 @@ namespace lb {
     return result;
   }
 
-  auto Board::placeBoardFromParse(Color color, PieceType ptype, Square sq) -> void {
+  auto Position::placeBoardFromParse(Color color, PieceType ptype, Square sq) -> void {
     const Bitboard bb = Bitboard::fromSq(sq);
     colors[std::to_underlying(color)] |= bb;
     pieces[ptype.toBitboardIndex()] |= bb;
     board_mailbox[sq.raw] = Place{color, ptype};
   }
 
-  auto Board::placeHandFromParse(Color color, PieceType ptype, usize count) -> bool {
+  auto Position::placeHandFromParse(Color color, PieceType ptype, usize count) -> bool {
     const std::array<usize, 8> max_count{{0, 18, 2, 2, 4, 4, 4, 4}};
     if (count > max_count[ptype.toHandIndex()] || count == 0)
       return false;

@@ -141,7 +141,7 @@ namespace lb {
       const std::string_view color_str = it.next();
       const std::string_view hand_str = it.next();
       const std::string_view ply_str = it.next();
-      const auto pos = Board::parse(board_str, color_str, hand_str, ply_str);
+      const auto pos = Position::parse(board_str, color_str, hand_str, ply_str);
       if (!pos)
         return printProtocolError("position", "invalid sfen provided: {}", pos.error());
       game.setPosition(pos.value());

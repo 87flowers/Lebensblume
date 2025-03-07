@@ -4,7 +4,7 @@
 
 #include <print>
 
-#include "lb/board.h"
+#include "lb/position.h"
 #include "lb/util/assert.h"
 
 using namespace lb;
@@ -20,8 +20,8 @@ auto roundtrip() -> void {
       "lnsgkgsnl/1r5b1/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL b - 1",
   }};
   for (std::string_view sfen : cases) {
-    const Board board = Board::parse(sfen).value();
-    const std::string result = std::format("{}", board);
+    const Position position = Position::parse(sfen).value();
+    const std::string result = std::format("{}", position);
     lb_assert(result == sfen, "{} != {}", sfen, result);
   }
 }
@@ -33,7 +33,7 @@ auto enteringKing() -> void {
       {"lnsgkgsnl/1r5b1/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL b - 1", false},
   }};
   for (const auto [sfen, expected_result] : cases) {
-    const Board position = Board::parse(sfen).value();
+    const Position position = Position::parse(sfen).value();
     lb_assert(position.canDeclareEnteringKingsWin() == expected_result);
   }
 }

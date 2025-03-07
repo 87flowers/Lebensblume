@@ -5,7 +5,7 @@
 #include "lb/util/static_vector.h"
 
 namespace lb {
-  struct Board;
+  struct Position;
 } // namespace lb
 
 namespace lb::movegen {
@@ -13,8 +13,8 @@ namespace lb::movegen {
   using MoveList = StaticVector<Move, max_legal_moves>;
 
   auto validNormalDests(Color active_color, PieceType ptype) -> Bitboard;
-  auto isUchifuzume(const Board &board, Square enemy_king, Bitboard drop_bb) -> bool;
+  auto isUchifuzume(const Position &position, Square enemy_king, Bitboard drop_bb) -> bool;
 
-  auto generateMoves(MoveList &moves, const Board &board) -> void;
+  auto generateMoves(MoveList &moves, const Position &position) -> void;
 
 } // namespace lb::movegen
