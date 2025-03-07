@@ -45,9 +45,9 @@ namespace lb::eval {
 
     switch (position.activeColor()) {
     case Color::sente:
-      return sente_eval - gote_eval;
+      return clamp(sente_eval - gote_eval);
     case Color::gote:
-      return gote_eval - sente_eval;
+      return clamp(gote_eval - sente_eval);
     default:
       std::unreachable();
     }
