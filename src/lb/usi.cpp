@@ -109,6 +109,9 @@ namespace lb {
         search::usiNode(game, *value, std::move(start_time));
     } else if (part.empty()) {
       search::usiDepth(game, static_cast<i32>(max_search_ply), std::move(start_time));
+    } else if (part == "perft") {
+      if (const auto depth = read_int(); depth && *depth > 0)
+        perft::run(game.position(), static_cast<usize>(*depth));
     } else {
       printUnrecognizedToken("go", part);
     }
