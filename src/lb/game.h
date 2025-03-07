@@ -2,8 +2,8 @@
 
 #include <vector>
 
-#include "lb/board.h"
 #include "lb/common.h"
+#include "lb/position.h"
 #include "lb/tt.h"
 #include "lb/types.h"
 #include "lb/zhash.h"
@@ -21,7 +21,7 @@ namespace lb {
 
   struct Game {
   private:
-    std::vector<Board> position_stack;
+    std::vector<Position> position_stack;
     std::vector<zhash::Hash> hash_stack;
     std::vector<Move> move_stack;
 
@@ -30,15 +30,15 @@ namespace lb {
   public:
     auto reset() -> void;
 
-    auto position() const -> const Board & { return position_stack.back(); }
+    auto position() const -> const Position & { return position_stack.back(); }
     auto hash() const -> zhash::Hash { return position().getHash(); }
     // Strict check
     auto checkRepetition() const -> RepetitionType;
     // Potentially repeating position
     auto checkMaybeRepetition() const -> RepetitionType;
 
-    auto setPositionStartpos() -> void { setPosition(Board::startpos); }
-    auto setPosition(const Board &new_pos) -> void {
+    auto setPositionStartpos() -> void { setPosition(Position::startpos); }
+    auto setPosition(const Position &new_pos) -> void {
       position_stack.clear();
       hash_stack.clear();
       move_stack.clear();

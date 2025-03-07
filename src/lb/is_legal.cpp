@@ -1,14 +1,14 @@
 #include "lb/is_legal.h"
 
 #include "lb/attacks.h"
-#include "lb/board.h"
 #include "lb/common.h"
 #include "lb/geometry.h"
 #include "lb/movegen.h"
+#include "lb/position.h"
 
 namespace lb {
 
-  auto isMoveLegal(const Board &position, Move m) -> bool {
+  auto isMoveLegal(const Position &position, Move m) -> bool {
     const Color color = position.activeColor();
 
     if (m == Move::none())

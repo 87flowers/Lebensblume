@@ -3,13 +3,13 @@
 
 #include <utility>
 
-#include "lb/board.h"
 #include "lb/common.h"
+#include "lb/position.h"
 #include "lb/types.h"
 
 namespace lb::eval {
 
-  auto hce(const Board &position) -> i32 {
+  auto hce(const Position &position) -> i32 {
 
     const auto board = [&](Color color) -> i32 {
       i32 result = 0;

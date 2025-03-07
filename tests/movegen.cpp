@@ -2,9 +2,9 @@
 #include <tuple>
 #include <vector>
 
-#include "lb/board.h"
 #include "lb/common.h"
 #include "lb/movegen.h"
+#include "lb/position.h"
 #include "lb/util/assert.h"
 
 using namespace lb;
@@ -22,11 +22,11 @@ auto uchifuzume() -> void {
       {"3ngn3/3lkl3/3p1p3/9/9/7B1/PPPP1PPPP/9/4K4 b P 1", false, "P*5c"},
   }};
   for (auto [sfen, is_uchifuzume, move_str] : cases) {
-    const Board board = Board::parse(sfen).value();
+    const Position position = Position::parse(sfen).value();
     const Move move = Move::parse(move_str).value();
 
-    const bool direct_result = movegen::isUchifuzume(board, board.getKingSq(invert(board.activeColor())), Bitboard::fromSq(move.to()));
-    lb_assert(direct_result == is_uchifuzume, "{} | {} | {} | {}", board, move, direct_result, is_uchifuzume);
+    const bool direct_result = movegen::isUchifuzume(position, position.getKingSq(invert(position.activeColor())), Bitboard::fromSq(move.to()));
+    lb_assert(direct_result == is_uchifuzume, "{} | {} | {} | {}", position, move, direct_result, is_uchifuzume);
   }
 }
 

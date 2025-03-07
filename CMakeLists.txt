@@ -41,8 +41,6 @@ set(srcs
   src/lb/attacks.h
   src/lb/bench.cpp
   src/lb/bench.h
-  src/lb/board.cpp
-  src/lb/board.h
   src/lb/common.h
   src/lb/game.cpp
   src/lb/game.h
@@ -58,6 +56,8 @@ set(srcs
   src/lb/numbers.h
   src/lb/perft.cpp
   src/lb/perft.h
+  src/lb/position.cpp
+  src/lb/position.h
   src/lb/search.cpp
   src/lb/search.h
   src/lb/search_control.h
@@ -73,10 +73,12 @@ add_executable(lebensblume src/main.cpp ${srcs})
 target_compile_options(lebensblume PUBLIC $<$<CONFIG:Release>:-DLB_NO_ASSERTS>)
 
 add_library(lb OBJECT ${srcs})
+
 do_test(bench)
-do_test(board)
 do_test(common)
 do_test(game)
 do_test(is_legal)
 do_test(movegen)
+do_test(position)
+
 do_test(perft)

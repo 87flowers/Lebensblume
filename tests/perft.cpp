@@ -3,8 +3,8 @@
 #include <tuple>
 #include <vector>
 
-#include "lb/board.h"
 #include "lb/perft.h"
+#include "lb/position.h"
 #include "lb/types.h"
 #include "lb/util/assert.h"
 
@@ -23,10 +23,10 @@ auto main() -> int {
   }};
 
   for (auto [sfen, expected_results] : cases) {
-    const Board board = Board::parse(sfen).value();
-    std::print("position {}\n", board);
+    const Position position = Position::parse(sfen).value();
+    std::print("position {}\n", position);
     for (usize i = 0; i < expected_results.size(); i++) {
-      const usize result = perft::value(board, i);
+      const usize result = perft::value(position, i);
       std::print("depth {} : {} : {}\n", i, result, expected_results[i]);
       lb_assert(result == expected_results[i]);
     }

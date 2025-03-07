@@ -4,9 +4,9 @@
 
 #include <print>
 
-#include "lb/board.h"
 #include "lb/common.h"
 #include "lb/game.h"
+#include "lb/position.h"
 #include "lb/util/assert.h"
 #include "lb/util/tokenizer.h"
 
@@ -29,7 +29,7 @@ auto sennichite() -> void {
   }};
   for (const auto [sfen, move_list1, move_list2, last_move] : cases) {
     Game game;
-    game.setPosition(Board::parse(sfen).value());
+    game.setPosition(Position::parse(sfen).value());
     lb_dbg("{}\n", game.position());
     lb_assert(game.checkRepetition() == RepetitionType::none);
     lb_assert(game.checkMaybeRepetition() == RepetitionType::none);
@@ -95,7 +95,7 @@ auto repetition() -> void {
   }};
   for (const auto [sfen, move_list, last_move] : cases) {
     Game game;
-    game.setPosition(Board::parse(sfen).value());
+    game.setPosition(Position::parse(sfen).value());
     lb_dbg("{}\n", game.position());
     lb_assert(game.checkRepetition() == RepetitionType::none);
 

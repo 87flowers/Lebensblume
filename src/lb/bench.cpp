@@ -6,6 +6,7 @@
 
 #include "lb/common.h"
 #include "lb/game.h"
+#include "lb/position.h"
 #include "lb/search.h"
 #include "lb/types.h"
 
@@ -35,7 +36,7 @@ namespace lb::bench {
     for (const std::string_view sfen : sfens) {
       game.reset();
       std::print("benching {}\n", sfen);
-      game.setPosition(Board::parse(sfen).value());
+      game.setPosition(Position::parse(sfen).value());
 
       nodes += search::bench(game, target_depth, time::Clock::now());
 

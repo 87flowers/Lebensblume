@@ -1,6 +1,12 @@
 #include "lb/game.h"
 
+#include <optional>
 #include <print>
+#include <string>
+#include <string_view>
+
+#include "lb/position.h"
+#include "lb/types.h"
 
 namespace lb {
 
@@ -70,7 +76,7 @@ namespace lb {
   }
 
   auto Game::printKifu() const -> void {
-    if (position_stack.front() == Board::startpos) {
+    if (position_stack.front() == Position::startpos) {
       std::print("手合割：平手\n");
     } else {
       position_stack.front().printKifu();

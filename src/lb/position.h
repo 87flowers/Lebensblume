@@ -14,7 +14,7 @@
 
 namespace lb {
 
-  struct Board;
+  struct Position;
 
   struct Place {
     u8 raw = 0;
@@ -31,7 +31,7 @@ namespace lb {
 
   struct Hand {
   private:
-    friend struct Board;
+    friend struct Position;
 
     std::array<u8, 8> raw{};
 
@@ -59,9 +59,9 @@ namespace lb {
     inline constexpr auto operator==(const Hand &) const -> bool = default;
   };
 
-  struct Board {
+  struct Position {
   private:
-    friend class std::formatter<lb::Board, char>;
+    friend class std::formatter<lb::Position, char>;
 
     std::array<Bitboard, 2> colors{};
     std::array<Bitboard, PieceType::bitboard_count> pieces{};
@@ -84,9 +84,9 @@ namespace lb {
     zhash::Hash hash{};
 
   public:
-    static const Board startpos;
+    static const Position startpos;
 
-    constexpr Board() = default;
+    constexpr Position() = default;
 
     inline constexpr auto activeColor() const -> Color { return active_color; }
     inline constexpr auto nonCheckClock(Color color) const -> u16 { return non_check_clock[std::to_underlying(color)]; }
@@ -110,8 +110,8 @@ namespace lb {
     inline constexpr auto getDanger() const -> Bitboard { return danger; }
     inline constexpr auto getHash() const -> zhash::Hash { return hash; }
 
-    inline auto move(Move m) const -> Board {
-      Board result = *this;
+    inline auto move(Move m) const -> Position {
+      Position result = *this;
       result.moveNoPrecompute(m);
       result.precompute();
       return result;
@@ -133,7 +133,7 @@ namespace lb {
 
     auto printKifu() const -> void;
 
-    static auto parse(std::string_view str) -> std::expected<Board, ParseError> {
+    static auto parse(std::string_view str) -> std::expected<Position, ParseError> {
       Tokenizer it{str};
       const std::string_view board_str = it.next();
       const std::string_view color = it.next();
@@ -145,9 +145,9 @@ namespace lb {
     }
 
     static auto parse(std::string_view board_str, std::string_view color_str, std::string_view hand_str, std::string_view ply_str)
-        -> std::expected<Board, ParseError>;
+        -> std::expected<Position, ParseError>;
 
-    constexpr auto operator==(const Board &) const -> bool = default;
+    constexpr auto operator==(const Position &) const -> bool = default;
 
   private:
     auto placeBoardFromParse(Color color, PieceType ptype, Square sq) -> void;
@@ -156,17 +156,17 @@ namespace lb {
 
 } // namespace lb
 
-template <> struct std::formatter<lb::Board, char> {
+template <> struct std::formatter<lb::Position, char> {
   template <class ParseContext> constexpr auto parse(ParseContext &ctx) -> ParseContext::iterator { return ctx.begin(); }
 
-  template <class FmtContext> auto format(const lb::Board &board, FmtContext &ctx) const -> FmtContext::iterator {
+  template <class FmtContext> auto format(const lb::Position &position, FmtContext &ctx) const -> FmtContext::iterator {
     using namespace lb;
     usize blanks = 0;
     for (usize place_index : std::views::iota(0, 81)) {
       const usize file = 8 - place_index % 9;
       const usize rank = place_index / 9;
       const Square sq = Square::fromFileAndRank(file, rank);
-      const Place place = board.board_mailbox[sq.raw];
+      const Place place = position.board_mailbox[sq.raw];
       if (place.ptype() == PieceType::none) {
         blanks++;
       } else {
@@ -185,14 +185,14 @@ template <> struct std::formatter<lb::Board, char> {
           ctx.advance_to(std::format_to(ctx.out(), "/"));
       }
     }
-    ctx.advance_to(std::format_to(ctx.out(), " {} ", board.active_color));
-    if (board.hand[0].bithand() == 0 && board.hand[1].bithand() == 0) {
+    ctx.advance_to(std::format_to(ctx.out(), " {} ", position.active_color));
+    if (position.hand[0].bithand() == 0 && position.hand[1].bithand() == 0) {
       ctx.advance_to(std::format_to(ctx.out(), "-"));
     } else {
       for (usize c : std::views::iota(0, 2)) {
         using PT = PieceType;
         for (PieceType ptype : {PT::rook, PT::bishop, PT::gold, PT::silver, PT::knight, PT::lance, PT::pawn}) {
-          const usize count = board.hand[c].getPiece(ptype);
+          const usize count = position.hand[c].getPiece(ptype);
           if (count > 0) {
             if (count > 1)
               ctx.advance_to(std::format_to(ctx.out(), "{}", count));
@@ -201,6 +201,6 @@ template <> struct std::formatter<lb::Board, char> {
         }
       }
     }
-    return std::format_to(ctx.out(), " {}", board.ply + 1);
+    return std::format_to(ctx.out(), " {}", position.ply + 1);
   }
 };
