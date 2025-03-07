@@ -208,20 +208,37 @@ namespace lb {
   auto Position::getAttackMapWithExtraAttackerPawns(Color attacker_color, Bitboard extra_pawns) const -> Bitboard {
     const Bitboard occupied = (getOccupied() & ~getKing(invert(attacker_color))) | extra_pawns;
 
-    const Bitboard orthogonals = getPiece(attacker_color, PieceType::rook) | getPiece(attacker_color, PieceType::dragon);
-    const Bitboard diagonals = getPiece(attacker_color, PieceType::bishop) | getPiece(attacker_color, PieceType::horse);
-    const Bitboard rings = getPiece(attacker_color, PieceType::horse) | getPiece(attacker_color, PieceType::dragon);
-    const Bitboard golds = getPiece(attacker_color, PieceType::gold) | getPiece(attacker_color, PieceType::tokin) | getPromoteds(attacker_color);
+    const Bitboard pawn = getPiece(attacker_color, PieceType::pawn) | extra_pawns;
+    const Bitboard bishop = getPiece(attacker_color, PieceType::bishop);
+    const Bitboard rook = getPiece(attacker_color, PieceType::rook);
+    const Bitboard lance = getPiece(attacker_color, PieceType::lance);
+    const Bitboard knight = getPiece(attacker_color, PieceType::knight);
+    const Bitboard silver = getPiece(attacker_color, PieceType::silver);
+    const Bitboard gold = getPiece(attacker_color, PieceType::gold) | getPiece(attacker_color, PieceType::tokin) | getPromoteds(attacker_color);
+    const Bitboard horse = getPiece(attacker_color, PieceType::horse);
+    const Bitboard dragon = getPiece(attacker_color, PieceType::dragon);
+    const Bitboard king = getKing(attacker_color);
+
+    const Bitboard step_orthogonal = gold | horse | king;
+    const Bitboard step_diagonal = silver | dragon | king;
+    const Bitboard step_forwards = gold | silver;
 
     Bitboard result{};
-    result |= attacks::allRooks(orthogonals, occupied);
-    result |= attacks::allBishops(diagonals, occupied);
-    result |= attacks::allKings(rings | getKing(attacker_color));
-    result |= attacks::allGolds(golds, attacker_color);
-    result |= attacks::allPawns(getPiece(attacker_color, PieceType::pawn) | extra_pawns, attacker_color);
-    result |= attacks::allLances(getPiece(attacker_color, PieceType::lance), attacker_color, occupied);
-    result |= attacks::allKnights(getPiece(attacker_color, PieceType::knight), attacker_color);
-    result |= attacks::allSilvers(getPiece(attacker_color, PieceType::silver), attacker_color);
+
+    result |= (step_diagonal | step_forwards).shiftRelative(Direction::nw, attacker_color);
+    result |= (pawn | step_orthogonal | step_forwards).shiftRelative(Direction::n, attacker_color);
+    result |= (step_diagonal | step_forwards).shiftRelative(Direction::ne, attacker_color);
+    result |= step_diagonal.shiftRelative(Direction::sw, attacker_color);
+    result |= step_orthogonal.shiftRelative(Direction::s, attacker_color);
+    result |= step_diagonal.shiftRelative(Direction::se, attacker_color);
+    result |= step_orthogonal.shift(Direction::e);
+    result |= step_orthogonal.shift(Direction::w);
+
+    result |= attacks::allRooks(rook | dragon, occupied);
+    result |= attacks::allBishops(bishop | horse, occupied);
+    result |= attacks::allLances(lance, attacker_color, occupied);
+    result |= attacks::allKnights(knight, attacker_color);
+
     return result;
   }
 
