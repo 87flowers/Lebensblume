@@ -15,7 +15,7 @@
 namespace lb::eval {
 
   static auto calcInfluenceScores(const Position &position) -> std::tuple<i32, i32> {
-    const std::array<i32, 9> multipler{{0, 1024, 1024 / 4, 1024 / 9, 1024 / 16, 1024 / 25, 1024 / 36, 1024 / 49, 1024 / 81}};
+    const std::array<i32, 9> multipler{{0, 1024, 1024 / 2, 1024 / 3, 1024 / 4, 1024 / 5, 1024 / 6, 1024 / 7, 1024 / 8}};
 
     // const auto count_influence = [](const std::array<Bitboard, 4> &influence, Bitboard ring) -> i32 {
     //   return static_cast<i32>(1 * (influence[0] & ring).count() + 2 * (influence[1] & ring).count() + 4 * (influence[2] & ring).count() +
@@ -36,8 +36,8 @@ namespace lb::eval {
       const Bitboard sente_ring = geometry::manhattanRing(sente_king_sq, dist);
       const Bitboard gote_ring = geometry::manhattanRing(gote_king_sq, dist);
 
-      sente_score += ((40 * count_influence(sente, sente_ring) - 70 * count_influence(gote, sente_ring)) * multipler[dist]) >> 10;
-      gote_score += ((40 * count_influence(gote, gote_ring) - 70 * count_influence(sente, gote_ring)) * multipler[dist]) >> 10;
+      sente_score += ((70 * count_influence(sente, sente_ring) - 100 * count_influence(gote, sente_ring)) * multipler[dist]) >> 10;
+      gote_score += ((70 * count_influence(gote, gote_ring) - 100 * count_influence(sente, gote_ring)) * multipler[dist]) >> 10;
     }
 
     return {sente_score, gote_score};
