@@ -15,14 +15,14 @@
 namespace lb::eval {
 
   static auto calcInfluenceScores(const Position &position) -> std::tuple<i32, i32> {
-    const std::array<i32, 9> multipler{{0, 1024, 1024 / 2, 1024 / 3, 1024 / 4, 1024 / 5, 1024 / 6, 1024 / 7, 1024 / 8}};
+    const std::array<i32, 9> multipler{{1024, 1024 / 2, 1024 / 3, 1024 / 4, 1024 / 5, 1024 / 6, 1024 / 7, 1024 / 8, 1024 / 9}};
 
     // const auto count_influence = [](const std::array<Bitboard, 4> &influence, Bitboard ring) -> i32 {
     //   return static_cast<i32>(1 * (influence[0] & ring).count() + 2 * (influence[1] & ring).count() + 4 * (influence[2] & ring).count() +
     //                           8 * (influence[3] & ring).count());
     // };
 
-    const auto count_influence = [](Bitboard influence, Bitboard ring) -> i32 { return static_cast<i32>((influence & ring).count()); };
+    constexpr auto count_influence = [](Bitboard influence, Bitboard ring) -> i32 { return static_cast<i32>((influence & ring).count()); };
 
     const auto sente = position.activeColor() == Color::gote ? position.getDanger() : position.getAttackMap(Color::sente);
     const auto gote = position.activeColor() == Color::sente ? position.getDanger() : position.getAttackMap(Color::gote);
@@ -32,12 +32,12 @@ namespace lb::eval {
     i32 sente_score = 0;
     i32 gote_score = 0;
 
-    for (usize dist = 1; dist < 9; dist++) {
+    for (usize dist = 0; dist < 9; dist++) {
       const Bitboard sente_ring = geometry::manhattanRing(sente_king_sq, dist);
       const Bitboard gote_ring = geometry::manhattanRing(gote_king_sq, dist);
 
-      sente_score += ((70 * count_influence(sente, sente_ring) - 100 * count_influence(gote, sente_ring)) * multipler[dist]) >> 10;
-      gote_score += ((70 * count_influence(gote, gote_ring) - 100 * count_influence(sente, gote_ring)) * multipler[dist]) >> 10;
+      sente_score += ((50 * count_influence(sente, sente_ring) - 90 * count_influence(gote, sente_ring)) * multipler[dist]) >> 10;
+      gote_score += ((50 * count_influence(gote, gote_ring) - 90 * count_influence(sente, gote_ring)) * multipler[dist]) >> 10;
     }
 
     return {sente_score, gote_score};
