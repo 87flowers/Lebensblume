@@ -7,6 +7,7 @@
 
 #include "lb/bench.h"
 #include "lb/common.h"
+#include "lb/eval/hce.h"
 #include "lb/eval/influence.h"
 #include "lb/game.h"
 #include "lb/perft.h"
@@ -291,6 +292,8 @@ namespace lb {
       usiParseDisplay(game, it);
     } else if (cmd == "kifu") {
       game.printKifu();
+    } else if (cmd == "eval") {
+      eval::printInfo(game.position());
     } else if (cmd == "influence") {
       usiParseInfluence(game, it);
     } else if (cmd == "compiler") {

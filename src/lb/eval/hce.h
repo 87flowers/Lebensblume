@@ -10,4 +10,6 @@ namespace lb::eval {
 
   auto hce(const Position &position) -> i32;
 
+  auto printInfo(const Position &position) -> void;
+
 } // namespace lb::eval
