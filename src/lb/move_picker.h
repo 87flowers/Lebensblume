@@ -11,8 +11,10 @@ namespace lb {
   private:
     enum class Stage {
       tt_move,
-      generate_moves,
-      emit_moves,
+      generate_noises,
+      emit_noises,
+      generate_quiets,
+      emit_quiets,
     };
 
     Stage stage = Stage::tt_move;

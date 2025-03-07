@@ -11,12 +11,13 @@
 
 namespace lb::movegen {
 
-  static auto generateMovesNoCheckers(MoveList &moves, const Position &position) -> void;
-  static auto generateMovesOneChecker(MoveList &moves, const Position &position) -> void;
-  static auto generateMovesTwoCheckers(MoveList &moves, const Position &position) -> void;
+  template <bool has_drops> static auto generateMovesTo(MoveList &moves, const Position &position, Bitboard restrict_dests) -> void;
+  template <bool has_drops> static auto generateMovesNoCheckers(MoveList &moves, const Position &position, Bitboard restrict_dests) -> void;
+  template <bool has_drops> static auto generateMovesOneChecker(MoveList &moves, const Position &position, Bitboard restrict_dests) -> void;
+  static auto generateMovesTwoCheckers(MoveList &moves, const Position &position, Bitboard restrict_dests) -> void;
 
+  static auto generateKingMoves(MoveList &moves, const Position &position, Bitboard restrict_dests) -> void;
   static auto generateNonKingMoves(MoveList &moves, const Position &position, Bitboard valid_dests) -> void;
-  static auto generateKingMoves(MoveList &moves, const Position &position) -> void;
   static auto generateDrops(MoveList &moves, const Position &position, Bitboard valid_dests) -> void;
 
   static auto splatNormalMoves(MoveList &moves, Square from, Bitboard to) -> void;
@@ -40,33 +41,52 @@ namespace lb::movegen {
     }
   }
 
-  auto generateMoves(MoveList &moves, const Position &position) -> void {
+  auto generateMoves(MoveList &moves, const Position &position) -> void { generateMovesTo<true>(moves, position, ~Bitboard{}); }
+
+  auto generateNoises(MoveList &moves, const Position &position) -> void {
+    generateMovesTo<false>(moves, position, position.getColor(invert(position.activeColor())));
+  }
+  auto generateQuiets(MoveList &moves, const Position &position) -> void {
+    generateMovesTo<true>(moves, position, ~position.getColor(invert(position.activeColor())));
+  }
+
+  template <bool has_drops> static auto generateMovesTo(MoveList &moves, const Position &position, Bitboard restrict_dests) -> void {
     switch (position.getCheckers().count()) {
     case 0:
-      return generateMovesNoCheckers(moves, position);
+      return generateMovesNoCheckers<has_drops>(moves, position, restrict_dests);
     case 1:
-      return generateMovesOneChecker(moves, position);
+      return generateMovesOneChecker<has_drops>(moves, position, restrict_dests);
     default:
-      return generateMovesTwoCheckers(moves, position);
+      return generateMovesTwoCheckers(moves, position, restrict_dests);
     }
   }
 
-  static auto generateMovesNoCheckers(MoveList &moves, const Position &position) -> void {
+  template <bool has_drops> static auto generateMovesNoCheckers(MoveList &moves, const Position &position, Bitboard restrict_dests) -> void {
     const Bitboard valid_dests = ~position.getColor(position.activeColor());
     const Bitboard valid_drop_dests = ~position.getOccupied();
-    generateNonKingMoves(moves, position, valid_dests);
-    generateKingMoves(moves, position);
-    generateDrops(moves, position, valid_drop_dests);
+    generateNonKingMoves(moves, position, valid_dests & restrict_dests);
+    generateKingMoves(moves, position, restrict_dests);
+    if constexpr (has_drops)
+      generateDrops(moves, position, valid_drop_dests & restrict_dests);
   }
 
-  static auto generateMovesOneChecker(MoveList &moves, const Position &position) -> void {
+  template <bool has_drops> static auto generateMovesOneChecker(MoveList &moves, const Position &position, Bitboard restrict_dests) -> void {
     const Bitboard valid_dests = geometry::rayBetween(position.getKingSq(position.activeColor()), position.getCheckers().toSq());
-    generateNonKingMoves(moves, position, valid_dests | position.getCheckers());
-    generateKingMoves(moves, position);
-    generateDrops(moves, position, valid_dests);
+    generateNonKingMoves(moves, position, (valid_dests | position.getCheckers()) & restrict_dests);
+    generateKingMoves(moves, position, restrict_dests);
+    if constexpr (has_drops)
+      generateDrops(moves, position, valid_dests & restrict_dests);
   }
 
-  static auto generateMovesTwoCheckers(MoveList &moves, const Position &position) -> void { generateKingMoves(moves, position); }
+  static auto generateMovesTwoCheckers(MoveList &moves, const Position &position, Bitboard restrict_dests) -> void {
+    generateKingMoves(moves, position, restrict_dests);
+  }
+
+  static auto generateKingMoves(MoveList &moves, const Position &position, Bitboard restrict_dests) -> void {
+    const Square king_sq = position.getKingSq(position.activeColor());
+    const Bitboard king_moves = attacks::king(king_sq) & ~position.getDanger() & ~position.getColor(position.activeColor());
+    splatNormalMoves(moves, king_sq, king_moves & restrict_dests);
+  }
 
   static auto generateNonKingMoves(MoveList &moves, const Position &position, Bitboard valid_dests) -> void {
     const Color color = position.activeColor();
@@ -112,12 +132,6 @@ namespace lb::movegen {
     gen.template operator()<PieceType::knight>([](Square from, Color color, Bitboard blockers) { return attacks::knight(from, color); });
     gen.template operator()<PieceType::lance>([](Square from, Color color, Bitboard blockers) { return attacks::lance(from, color, blockers); });
     gen.template operator()<PieceType::pawn>([](Square from, Color color, Bitboard blockers) { return attacks::pawn(from, color); });
-  }
-
-  static auto generateKingMoves(MoveList &moves, const Position &position) -> void {
-    const Square king_sq = position.getKingSq(position.activeColor());
-    const Bitboard king_moves = attacks::king(king_sq) & ~position.getDanger() & ~position.getColor(position.activeColor());
-    splatNormalMoves(moves, king_sq, king_moves);
   }
 
   static auto generateDrops(MoveList &moves, const Position &position, Bitboard valid_dests) -> void {

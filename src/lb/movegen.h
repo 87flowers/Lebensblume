@@ -16,5 +16,7 @@ namespace lb::movegen {
   auto isUchifuzume(const Position &position, Square enemy_king, Bitboard drop_bb) -> bool;
 
   auto generateMoves(MoveList &moves, const Position &position) -> void;
+  auto generateNoises(MoveList &moves, const Position &position) -> void;
+  auto generateQuiets(MoveList &moves, const Position &position) -> void;
 
 } // namespace lb::movegen

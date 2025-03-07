@@ -12,21 +12,34 @@ namespace lb {
   auto MovePicker::next() -> Move {
     switch (stage) {
     case Stage::tt_move:
-      stage = Stage::generate_moves;
+      stage = Stage::generate_noises;
       if (tt_move != Move::none() && isMoveLegal(game.position(), tt_move)) {
         return tt_move;
       }
       [[fallthrough]];
-    case Stage::generate_moves:
-      movegen::generateMoves(moves, game.position());
-      stage = Stage::emit_moves;
+    case Stage::generate_noises:
+      moves.clear();
+      movegen::generateNoises(moves, game.position());
+      stage = Stage::emit_noises;
       [[fallthrough]];
-    case Stage::emit_moves:
+    case Stage::emit_noises:
       while (current_index < moves.size() && moves[current_index] == tt_move)
         current_index++;
-      if (current_index >= moves.size())
-        return Move::none();
-      return moves[current_index++];
+      if (current_index < moves.size())
+        return moves[current_index++];
+      stage = Stage::generate_quiets;
+      [[fallthrough]];
+    case Stage::generate_quiets:
+      moves.clear();
+      movegen::generateQuiets(moves, game.position());
+      stage = Stage::emit_quiets;
+      [[fallthrough]];
+    case Stage::emit_quiets:
+      while (current_index < moves.size() && moves[current_index] == tt_move)
+        current_index++;
+      if (current_index < moves.size())
+        return moves[current_index++];
+      return Move::none();
     }
     std::unreachable();
   }
