@@ -30,6 +30,8 @@ set(srcs
   src/lb/eval/eval.h
   src/lb/eval/hce.cpp
   src/lb/eval/hce.h
+  src/lb/eval/influence.cpp
+  src/lb/eval/influence.h
   src/lb/util/assert.cpp
   src/lb/util/assert.h
   src/lb/util/defer.h

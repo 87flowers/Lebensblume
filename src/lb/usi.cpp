@@ -1,11 +1,13 @@
 #include "lb/usi.h"
 
+#include <array>
 #include <cstdio>
 #include <optional>
 #include <print>
 
 #include "lb/bench.h"
 #include "lb/common.h"
+#include "lb/eval/influence.h"
 #include "lb/game.h"
 #include "lb/perft.h"
 #include "lb/search.h"
@@ -211,6 +213,28 @@ namespace lb {
     std::print("\n");
   }
 
+  static auto usiParseInfluence(Game &game, Tokenizer &it) -> void {
+    const auto print_influence = [](const std::array<Bitboard, 4> &influence) {
+      std::print("  9  8  7  6  5  4  3  2  1  \n");
+      std::print("+---------------------------+\n");
+      for (i8 rank = 0; rank < 9; rank++) {
+        std::print("|");
+        for (i8 file = 8; file >= 0; file--) {
+          const Square sq = Square::fromFileAndRank(static_cast<usize>(file), static_cast<usize>(rank));
+          const usize value = influence[0].get(sq) + 2 * influence[1].get(sq) + 4 * influence[2].get(sq) + 8 * influence[3].get(sq);
+          std::print("{:^3}", value);
+        }
+        std::print("| {}\n", static_cast<char>('a' + rank));
+      }
+      std::print("+---------------------------+\n");
+    };
+
+    std::print("sente:\n");
+    print_influence(eval::calcInfluence(Color::sente, game.position()));
+    std::print("gote:\n");
+    print_influence(eval::calcInfluence(Color::gote, game.position()));
+  }
+
   static auto usiParseCompiler(Game &game, Tokenizer &it) -> void {
     // clang-format off
     std::print("compiler build-datetime " __DATE__ " " __TIME__ "\n"
@@ -267,6 +291,8 @@ namespace lb {
       usiParseDisplay(game, it);
     } else if (cmd == "kifu") {
       game.printKifu();
+    } else if (cmd == "influence") {
+      usiParseInfluence(game, it);
     } else if (cmd == "compiler") {
       usiParseCompiler(game, it);
     } else if (cmd == "quit") {

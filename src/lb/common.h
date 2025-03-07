@@ -267,6 +267,7 @@ namespace lb {
     inline constexpr auto empty() const -> bool { return raw == 0; }
     inline constexpr auto count() const -> usize { return std::popcount(static_cast<u64>(raw)) + std::popcount(static_cast<u64>(raw >> 64)); }
 
+    inline constexpr auto get(Square sq) const -> bool { return raw & fromSq(sq).raw; }
     inline constexpr auto clear(Square sq) -> void { raw &= ~fromSq(sq).raw; }
     inline constexpr auto set(Square sq) -> void { raw |= fromSq(sq).raw; }
 
