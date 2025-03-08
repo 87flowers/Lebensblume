@@ -79,4 +79,6 @@ do_test(common)
 do_test(game)
 do_test(is_legal)
 do_test(movegen)
+do_test(tt)
+
 do_test(perft)

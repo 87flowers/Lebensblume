@@ -40,7 +40,10 @@ namespace lb::tt {
     const Bucket &bucket = buckets.get()[bucket_index];
 
     if (const auto entry_index = getEntryIndex(bucket, ctrl)) {
-      return bucket.entries[*entry_index].toResult(ply);
+      const Entry &entry = bucket.entries[*entry_index];
+      if (entry.fragment() == fragment) {
+        return entry.toResult(ply);
+      }
     }
     return {};
   }
@@ -57,7 +60,8 @@ namespace lb::tt {
                                   })
                                   .value();
 
-    bucket.entries[entry_index] = Entry{ply, lr, hash};
+    bucket.ctrls[entry_index] = ctrl;
+    bucket.entries[entry_index] = Entry{fragment, ply, lr};
   }
 
 } // namespace lb::tt
