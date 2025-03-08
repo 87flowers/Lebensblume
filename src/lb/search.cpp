@@ -55,6 +55,14 @@ namespace lb::search {
         return 0;
     }
 
+    // Mate distance pruning
+    if constexpr (!NodeT::is_root) {
+      alpha = std::max(alpha, eval::mated(ply));
+      beta = std::min(beta, eval::mating(ply + 1));
+      if (alpha >= beta)
+        return alpha;
+    }
+
     const auto tte = game.ttLoad(ply);
 
     if constexpr (!NodeT::is_pv) {
