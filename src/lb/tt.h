@@ -12,16 +12,16 @@
 namespace lb::tt {
 
   enum class Bound {
-    empty = 0b00,
+    none = 0b00,
     lower_bound = 0b01,
     exact = 0b10,
     upper_bound = 0b11,
   };
 
   struct LookupResult {
-    i32 depth;
-    Bound bound = Bound::empty;
-    i32 score;
+    i32 depth = 0;
+    Bound bound = Bound::none;
+    i32 score = 0;
     Move move = Move::none();
   };
 
@@ -39,15 +39,18 @@ namespace lb::tt {
     static inline constexpr usize score_shift = 48;
     static inline constexpr u64 fragment_mask = (static_cast<u64>(1) << fragment_width) - 1;
 
-    u64 raw;
+    u64 raw = 0;
 
-    constexpr Entry(i32 ply, LookupResult lr, zhash::Hash hash) {
+    constexpr Entry(u64 fragment, i32 ply, LookupResult lr) {
       const i32 tt_score = eval::adjustPlysToMate(lr.score, -ply);
       const i32 tt_depth = std::clamp(lr.depth, 0, 255);
+      const u64 tt_bound = std::to_underlying(lr.bound);
+
+      lb_assert((fragment & fragment_mask) == fragment);
 
       raw = 0;
-      raw |= hash & fragment_mask;
-      raw |= static_cast<u64>(lr.bound) << bounds_shift;
+      raw |= fragment;
+      raw |= static_cast<u64>(tt_bound) << bounds_shift;
       raw |= static_cast<u64>(tt_depth) << depth_shift;
       raw |= static_cast<u64>(lr.move.raw) << move_shift;
       raw |= static_cast<u64>(tt_score) << score_shift;
@@ -91,8 +94,11 @@ namespace lb::tt {
     std::unique_ptr<Bucket, decltype(&bucket_free)> buckets;
 
   public:
-    explicit TT(usize mb) : buckets{bucket_alloc(megabytesToBucketCount(mb)), &bucket_free} {}
-    auto resize(usize mb) -> void { buckets = {bucket_alloc(megabytesToBucketCount(mb)), &bucket_free}; }
+    explicit TT(usize mb) : bucket_count{megabytesToBucketCount(mb)}, buckets{bucket_alloc(bucket_count), &bucket_free} {}
+    auto resize(usize mb) -> void {
+      bucket_count = megabytesToBucketCount(mb);
+      buckets = {bucket_alloc(bucket_count), &bucket_free};
+    }
 
     auto clear() -> void;
 
