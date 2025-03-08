@@ -57,6 +57,24 @@ namespace lb::search {
 
     const auto tte = game.ttLoad(ply);
 
+    if constexpr (!NodeT::is_pv) {
+      if (tte.depth >= depth && [&] {
+            switch (tte.bound) {
+            case tt::Bound::none:
+              return false;
+            case tt::Bound::lower_bound:
+              return tte.score >= beta;
+            case tt::Bound::exact:
+              return true;
+            case tt::Bound::upper_bound:
+              return tte.score <= initial_alpha;
+            }
+            std::unreachable();
+          }()) {
+        return tte.score;
+      }
+    }
+
     MovePicker moves{game, tte.move};
 
     i32 best_score = eval::no_moves;
