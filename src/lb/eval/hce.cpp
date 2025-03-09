@@ -43,11 +43,13 @@ namespace lb::eval {
     const i32 sente_eval = board(Color::sente) + hand(Color::sente);
     const i32 gote_eval = board(Color::gote) + hand(Color::gote);
 
+    const i32 fudge = static_cast<i32>(position.getHash() & 0xF) - 0x7;
+
     switch (position.activeColor()) {
     case Color::sente:
-      return clamp(sente_eval - gote_eval);
+      return clamp(sente_eval - gote_eval + fudge);
     case Color::gote:
-      return clamp(gote_eval - sente_eval);
+      return clamp(gote_eval - sente_eval - fudge);
     default:
       std::unreachable();
     }
