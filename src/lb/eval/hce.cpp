@@ -30,13 +30,13 @@ namespace lb::eval {
     const auto hand = [&](Color color) -> i32 {
       const Hand hand = position.getHand(color);
       i32 result = 0;
-      result += 100 * hand.getPiece(PieceType::pawn);
-      result += 300 * hand.getPiece(PieceType::lance);
-      result += 400 * hand.getPiece(PieceType::knight);
-      result += 500 * hand.getPiece(PieceType::silver);
-      result += 600 * hand.getPiece(PieceType::gold);
-      result += 800 * hand.getPiece(PieceType::bishop);
-      result += 1000 * hand.getPiece(PieceType::rook);
+      result += 110 * hand.getPiece(PieceType::pawn);
+      result += 330 * hand.getPiece(PieceType::lance);
+      result += 440 * hand.getPiece(PieceType::knight);
+      result += 550 * hand.getPiece(PieceType::silver);
+      result += 660 * hand.getPiece(PieceType::gold);
+      result += 880 * hand.getPiece(PieceType::bishop);
+      result += 1100 * hand.getPiece(PieceType::rook);
       return result;
     };
 
