@@ -30,11 +30,15 @@ namespace lb {
       stage = Stage::generate_quiets;
       [[fallthrough]];
     case Stage::generate_quiets:
+      if (suppress_quiets)
+        return Move::none();
       moves.clear();
       movegen::generateQuiets(moves, game.position());
       stage = Stage::emit_quiets;
       [[fallthrough]];
     case Stage::emit_quiets:
+      if (suppress_quiets)
+        return Move::none();
       while (current_index < moves.size() && moves[current_index] == tt_move)
         current_index++;
       if (current_index < moves.size())

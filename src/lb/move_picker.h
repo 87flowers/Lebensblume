@@ -25,10 +25,14 @@ namespace lb {
     usize current_index = 0;
     movegen::MoveList moves;
 
+    bool suppress_quiets = false;
+
   public:
     MovePicker(const Game &game, Move tt_move);
 
     auto next() -> Move;
+
+    auto suppressQuiets() -> void { suppress_quiets = true; }
   };
 
 } // namespace lb
