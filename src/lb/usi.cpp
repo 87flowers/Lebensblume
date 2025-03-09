@@ -115,6 +115,7 @@ namespace lb {
     } else {
       printUnrecognizedToken("go", part);
     }
+    std::fflush(stdout);
   }
 
   static auto usiParseMoves(Game &game, Tokenizer &it) -> void {

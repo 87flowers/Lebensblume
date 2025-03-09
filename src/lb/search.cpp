@@ -179,6 +179,7 @@ namespace lb::search {
     std::print("info depth {} score cp {} time {} nodes {} nps {} pv {}\n", last_depth, last_score,
                time::cast<time::Milliseconds>(ctrl.elapsed()).count(), ctrl.nodeCount(), static_cast<u64>(nps), last_pv);
     std::print("bestmove {}\n", last_pv.pv[0]);
+    std::fflush(stdout);
   }
 
   auto usiTime(Game &game, TimeSettings ts, time::TimePoint start_time) -> void {
