@@ -102,6 +102,7 @@ namespace lb {
 
     pinned = getPinned(friendly_color);
     danger = getAttackMap(enemy_color);
+    defended = getAttackMap(friendly_color);
   }
 
   // 入玉宣言法

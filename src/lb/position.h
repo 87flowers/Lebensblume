@@ -80,6 +80,7 @@ namespace lb {
     Bitboard checkers{};
     Bitboard pinned{};
     Bitboard danger{};
+    Bitboard defended{};
 
     zhash::Hash hash{};
 
@@ -108,6 +109,7 @@ namespace lb {
     inline constexpr auto getCheckers() const -> Bitboard { return checkers; }
     inline constexpr auto getPinned() const -> Bitboard { return pinned; }
     inline constexpr auto getDanger() const -> Bitboard { return danger; }
+    inline constexpr auto getDefended() const -> Bitboard { return defended; }
     inline constexpr auto getHash() const -> zhash::Hash { return hash; }
 
     inline auto move(Move m) const -> Position {
