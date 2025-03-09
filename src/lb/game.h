@@ -52,6 +52,12 @@ namespace lb {
       move_stack.push_back(m);
     }
 
+    auto moveNull() -> void {
+      position_stack.emplace_back(position_stack.back().moveNull());
+      hash_stack.push_back(position_stack.back().getHash());
+      move_stack.push_back(Move::none());
+    }
+
     auto unmove() -> void {
       position_stack.pop_back();
       hash_stack.pop_back();

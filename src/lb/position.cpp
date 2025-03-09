@@ -14,6 +14,8 @@ namespace lb {
   const Position Position::startpos = Position::parse("lnsgkgsnl/1r5b1/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL b - 1").value();
 
   auto Position::moveNoPrecompute(Move m) -> void {
+    lb_assert(m != Move::none() && m != Move::win());
+
     const usize color_index = std::to_underlying(active_color);
     const Square m_to = m.to();
 
@@ -77,6 +79,21 @@ namespace lb {
     }
 
     lb_assert(hash == calcHashSlow(), "{} {} {:x} {:x} {:x}", *this, m, hash, calcHashSlow(), hash ^ calcHashSlow());
+  }
+
+  auto Position::moveNullNoPrecompute() -> void {
+    active_color = invert(active_color);
+    hash ^= zhash::move;
+    ply += 1;
+
+    checkers = getAllNonKingAttackers(getKingSq(active_color), invert(active_color));
+    if (checkers.empty()) {
+      non_check_clock[std::to_underlying(active_color)] = 0;
+    } else {
+      non_check_clock[std::to_underlying(active_color)] += 1;
+    }
+
+    lb_assert(hash == calcHashSlow(), "{} {} {:x} {:x} {:x}", *this, Move::none(), hash, calcHashSlow(), hash ^ calcHashSlow());
   }
 
   auto Position::precompute() -> void {

@@ -116,8 +116,15 @@ namespace lb {
       result.precompute();
       return result;
     }
+    inline auto moveNull() const -> Position {
+      Position result = *this;
+      result.moveNullNoPrecompute();
+      result.precompute();
+      return result;
+    }
 
     auto moveNoPrecompute(Move m) -> void;
+    auto moveNullNoPrecompute() -> void;
     auto precompute() -> void;
 
     // 入玉宣言法
